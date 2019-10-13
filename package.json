@@ -1,0 +1,74 @@
+{
+  "name": "data-mocks-server",
+  "version": "0.0.0-development",
+  "description": "Server version of the popular data-mocks library",
+  "main": "index.js",
+  "scripts": {
+    "commit": "git-cz",
+    "build": "rimraf lib && tsc -p . && copyfiles -f src/index.njk lib",
+    "lint": "eslint src/*.ts && eslint example/*.ts",
+    "example": "nodemon --watch src --watch example --ext ts,njk,css --exec 'ts-node example'",
+    "semantic-release": "semantic-release"
+  },
+  "keywords": [
+    "mocks",
+    "server"
+  ],
+  "author": "Kenneth Gray",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "nunjucks": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.1",
+    "@types/nunjucks": "^3.1.2",
+    "@typescript-eslint/eslint-plugin": "^2.3.3",
+    "@typescript-eslint/parser": "^2.3.3",
+    "commitizen": "^4.0.3",
+    "copyfiles": "^2.1.1",
+    "cz-conventional-changelog": "^3.0.2",
+    "eslint": "^6.5.1",
+    "eslint-config-prettier": "^6.4.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "nodemon": "^1.19.3",
+    "prettier": "^1.18.2",
+    "rimraf": "^3.0.0",
+    "semantic-release": "^15.13.24",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.4"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "release": {
+    "analyzeCommits": {
+      "preset": "angular",
+      "releaseRules": [
+        {
+          "type": "docs",
+          "scope": "README",
+          "release": "patch"
+        },
+        {
+          "type": "build",
+          "release": "patch"
+        },
+        {
+          "type": "chore",
+          "release": "patch"
+        },
+        {
+          "type": "refactor",
+          "release": "patch"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kenneth-gray/data-mocks-server.git"
+  }
+}
