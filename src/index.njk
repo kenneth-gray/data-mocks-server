@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>{% if updatedScenario %}Updated - {% endif %}Scenarios - Data Mocks Server</title>
+    <title>{% if updatedScenarios %}Updated - {% endif %}Scenarios - Data Mocks Server</title>
     <style>
       /* === Reset === */
 
@@ -120,8 +120,17 @@
     </style>
   </head>
   <body>
-    {% if updatedScenario %}
-    Updated to scenario {{updatedScenario}}
+    {% if updatedScenarios %}
+      {% if updatedScenarios.length === 0 %}
+        All scenarios removed.
+      {% else %}
+        Updated to the following scenarios:
+        <ul>
+          {% for scenario in updatedScenarios %}
+            <li>{{scenario}}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
     {% endif %}
     <form class="stack-1" method="POST" action="/">
       <legend><h1>Scenarios</h1></legend>
@@ -129,17 +138,17 @@
       {% for scenario in scenarios %}
         <div>
           <input
-            type="radio"
-            id="{{scenario}}"
-            name="scenario"
-            value="{{scenario}}"
-            {% if selectedScenario == scenario %}checked{% endif %}
+            type="checkbox"
+            id="{{scenario.name}}"
+            name="scenarios"
+            value="{{scenario.name}}"
+            {% if scenario.checked %}checked{% endif %}
           />
-          <label for="{{scenario}}">{{scenario}}</label>
+          <label for="{{scenario.name}}">{{scenario.name}}</label>
         </div>
       {% endfor %}
       </div>
-      <button type="submit">Change scenario</button>
+      <button type="submit">Modify scenarios</button>
     </form>
   </body>
 </html>

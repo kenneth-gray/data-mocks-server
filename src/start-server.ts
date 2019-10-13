@@ -4,8 +4,9 @@ import nunjucks from 'nunjucks';
 import { Scenarios, Mock, Options } from './types';
 
 type Message = {
+  defaultScenario: Mock[];
   scenarios: Scenarios;
-  scenario: string;
+  selectedScenarios: string[];
   options: Options;
 };
 
@@ -13,8 +14,14 @@ process.on('message', (message: Message) => {
   startServer(message);
 });
 
-function startServer({ scenarios, scenario, options }: Message) {
+function startServer({
+  defaultScenario,
+  scenarios,
+  selectedScenarios,
+  options,
+}: Message) {
   const app = express();
+  const scenariosList = Object.keys(scenarios);
 
   nunjucks.configure(__dirname, {
     autoescape: true,
@@ -25,26 +32,41 @@ function startServer({ scenarios, scenario, options }: Message) {
 
   app.get('/', (_, res) => {
     res.render('index.njk', {
-      scenarios: Object.keys(scenarios),
-      selectedScenario: scenario,
+      scenarios: scenariosList.map(scenario => ({
+        name: scenario,
+        checked: selectedScenarios.includes(scenario),
+      })),
     });
   });
 
-  app.post('/', ({ body: { scenario } }, res) => {
+  app.post('/', ({ body: { scenarios } }, res) => {
+    const updatedScenarios =
+      scenarios == null
+        ? []
+        : typeof scenarios === 'string'
+        ? [scenarios]
+        : scenarios;
+
     res.render('index.njk', {
-      scenarios: Object.keys(scenarios),
-      selectedScenario: scenario,
-      updatedScenario: scenario,
+      scenarios: scenariosList.map(scenario => ({
+        name: scenario,
+        checked: updatedScenarios.includes(scenario),
+      })),
+      updatedScenarios,
     });
 
     // This makes sure the response is sent before removing the server
     setTimeout(() => {
-      process.send && process.send({ scenario });
+      process.send && process.send(updatedScenarios);
     });
   });
 
-  console.log('Current scenario:', scenario);
-  const mocks: Mock[] = reduceAllMocksForScenario(scenarios, scenario);
+  console.log('Current scenarios:', selectedScenarios);
+  const mocks: Mock[] = reduceAllMocksForScenarios({
+    defaultScenario,
+    scenarios,
+    selectedScenarios,
+  });
 
   mocks.forEach(
     ({
@@ -115,22 +137,33 @@ function addDelay(delay: number) {
   return new Promise(res => setTimeout(res, delay));
 }
 
-function reduceAllMocksForScenario(
-  scenarios: Scenarios,
-  scenario: string,
-): Mock[] {
-  if (scenario === 'default') {
-    return scenarios.default;
+function reduceAllMocksForScenarios({
+  defaultScenario,
+  scenarios,
+  selectedScenarios,
+}: {
+  defaultScenario: Mock[];
+  scenarios: Scenarios;
+  selectedScenarios: string[];
+}): Mock[] {
+  if (selectedScenarios.length === 0) {
+    return defaultScenario;
   }
 
-  const defaultMocks = scenarios.default;
-  const scenarioMocks = scenarios[scenario];
+  const scenarioMocks = selectedScenarios.reduce<Mock[]>(
+    (result, selectedScenario) => {
+      const mocks = scenarios[selectedScenario];
 
-  if (!scenarioMocks) {
-    throw new Error(`No mocks found for scenario '${scenario}'`);
-  }
+      if (!mocks) {
+        return result;
+      }
 
-  return defaultMocks
+      return result.concat(mocks);
+    },
+    [],
+  );
+
+  return defaultScenario
     .filter(
       defaultMock =>
         !scenarioMocks.find(

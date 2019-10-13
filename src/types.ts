@@ -1,5 +1,4 @@
 export type Scenarios = {
-  default: Mock[];
   [scenario: string]: Mock[];
 };
 

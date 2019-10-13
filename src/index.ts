@@ -1,26 +1,41 @@
 import { fork } from 'child_process';
 import path from 'path';
 
-import { Scenarios, Options } from './types';
+import { Scenarios, Options, Mock } from './types';
 
 export * from './types';
 
-export function run(scenarios: Scenarios, options: Options = {}) {
-  let serverProcess = createServer('default');
+type Input = {
+  default: Mock[];
+  scenarios?: Scenarios;
+  options?: Options;
+};
+
+export function run({
+  default: defaultScenario,
+  scenarios = {},
+  options = {},
+}: Input) {
+  let serverProcess = createServer([]);
 
   return () => {
     serverProcess.kill();
   };
 
-  function createServer(scenario: string) {
+  function createServer(selectedScenarios: string[]) {
     const process = fork(path.join(__dirname, 'start-server'));
 
-    process.send({ scenarios, scenario, options });
+    process.send({
+      defaultScenario,
+      scenarios,
+      selectedScenarios,
+      options,
+    });
 
-    process.on('message', ({ scenario }: { scenario: string }) => {
+    process.on('message', (scenarios: string[]) => {
       process.kill();
 
-      serverProcess = createServer(scenario);
+      serverProcess = createServer(scenarios);
     });
 
     return process;
