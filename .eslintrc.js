@@ -8,5 +8,6 @@ module.exports = {
     '@typescript-eslint/no-use-before-define': 0,
     'prefer-const': 0,
     '@typescript-eslint/no-explicit-any': 0,
+    'no-shadow': 1,
   },
 };
