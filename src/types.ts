@@ -11,7 +11,7 @@ export type ResponseFunction = (input: {
 }) => Promise<{
   response: Record<string, any> | string;
   responseHeaders?: Record<string, string>;
-  responseCode: number;
+  responseCode?: number;
 }>;
 
 export type Mock = {
