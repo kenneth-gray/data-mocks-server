@@ -1,7 +1,7 @@
-import express, { Router } from 'express';
+import express, { Router, Request, Response } from 'express';
 import nunjucks from 'nunjucks';
 
-import { Scenarios, Options, Mock } from './types';
+import { Scenarios, Options, Mock, ResponseFunction } from './types';
 
 export * from './types';
 
@@ -31,6 +31,7 @@ export function run({
   });
 
   app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
 
   app.get('/', (_, res) => {
     res.render('index.njk', {
@@ -146,45 +147,45 @@ function createRouter({
       responseHeaders,
       delay = 0,
     }) => {
+      function handler(req: Request, res: Response) {
+        if (typeof response === 'function') {
+          (response as ResponseFunction)(req).then(result => {
+            res
+              .set(result.responseHeaders)
+              .status(result.responseCode || 200)
+              .json(result.response);
+          });
+
+          return;
+        }
+
+        addDelay(delay).then(() => {
+          res
+            .set(responseHeaders)
+            .status(responseCode)
+            .json(response);
+        });
+      }
+
       switch (method) {
         case 'GET':
-          router.get(url, function routeGet(_, res) {
-            addDelay(delay).then(() => {
-              res
-                .set(responseHeaders)
-                .status(responseCode)
-                .json(response);
-            });
+          router.get(url, function routeGet(req, res) {
+            handler(req, res);
           });
           break;
         case 'POST':
-          router.post(url, function routePost(_, res) {
-            addDelay(delay).then(() => {
-              res
-                .set(responseHeaders)
-                .status(responseCode)
-                .json(response);
-            });
+          router.post(url, function routePost(req, res) {
+            handler(req, res);
           });
           break;
         case 'PUT':
-          router.put(url, function routePut(_, res) {
-            addDelay(delay).then(() => {
-              res
-                .set(responseHeaders)
-                .status(responseCode)
-                .json(response);
-            });
+          router.put(url, function routePut(req, res) {
+            handler(req, res);
           });
           break;
         case 'DELETE':
-          router.delete(url, function routeDelete(_, res) {
-            addDelay(delay).then(() => {
-              res
-                .set(responseHeaders)
-                .status(responseCode)
-                .json(response);
-            });
+          router.delete(url, function routeDelete(req, res) {
+            handler(req, res);
           });
           break;
         default:
