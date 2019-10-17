@@ -65,6 +65,38 @@ export function run({
     });
   });
 
+  app.put(
+    '/modify-scenarios',
+    ({ body: { scenarios: scenariosBody } }, res) => {
+      if (!Array.isArray(scenariosBody)) {
+        res.status(400).json({
+          message:
+            '"scenarios" must be an array of scenario names (empty array allowed)',
+        });
+        return;
+      }
+
+      for (const scenario of scenariosBody) {
+        if (!scenarios.includes(scenario)) {
+          res.status(400).json({
+            message: `Scenario "${scenario}" does not exist`,
+          });
+          return;
+        }
+      }
+
+      selectedScenarios = scenariosBody;
+
+      router = createRouter({
+        defaultMocks,
+        scenarioMocks,
+        selectedScenarios,
+      });
+
+      res.sendStatus(204);
+    },
+  );
+
   app.use(function middleware(req, res, next) {
     router(req, res, next);
   });
