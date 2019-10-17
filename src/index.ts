@@ -55,7 +55,7 @@ export function run({
         name: scenario,
         checked: selectedScenarios.includes(scenario),
       })),
-      selectedScenarios,
+      updatedScenarios: selectedScenarios,
     });
 
     router = createRouter({
