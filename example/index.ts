@@ -7,6 +7,30 @@ run({
       method: 'GET',
       response: { blue: 'yoyo' },
     },
+    {
+      url: '/api/return/:someId',
+      method: 'GET',
+      response: async ({ query, params }) => {
+        return {
+          response: {
+            query,
+            params,
+          },
+        };
+      },
+    },
+    {
+      url: '/api/return/:someId',
+      method: 'POST',
+      response: async ({ body, params }) => {
+        return {
+          response: {
+            body,
+            params,
+          },
+        };
+      },
+    },
   ],
   scenarios: {
     cheese: [
