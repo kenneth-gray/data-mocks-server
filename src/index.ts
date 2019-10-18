@@ -1,9 +1,19 @@
 import express, { Router, Request, Response } from 'express';
 import nunjucks from 'nunjucks';
+import path from 'path';
 
 import { Scenarios, Options, Mock, ResponseFunction } from './types';
 
 export * from './types';
+
+type Groups = Array<{
+  name: string;
+  noneChecked: boolean;
+  scenarios: Array<{
+    name: string;
+    checked: boolean;
+  }>;
+}>;
 
 type Input = {
   default: Mock[];
@@ -23,45 +33,70 @@ export function run({
     selectedScenarios,
   });
   const app = express();
-  const scenarios = Object.keys(scenarioMocks);
+  const scenarioNames = Object.keys(scenarioMocks);
+  const groupNames = Object.values(scenarioMocks).reduce<string[]>(
+    (result, mock) => {
+      if (Array.isArray(mock) || result.includes(mock.group)) {
+        return result;
+      }
+
+      result.push(mock.group);
+      return result;
+    },
+    [],
+  );
 
   nunjucks.configure(__dirname, {
     autoescape: true,
     express: app,
   });
 
+  app.use(express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
 
   app.get('/', (_, res) => {
+    const { groups, other } = getPageVariables(
+      scenarioMocks,
+      selectedScenarios,
+    );
+
     res.render('index.njk', {
-      scenarios: scenarios.map(scenario => ({
-        name: scenario,
-        checked: selectedScenarios.includes(scenario),
-      })),
+      groups,
+      other,
     });
   });
 
-  app.post('/', ({ body: { scenarios: scenariosBody } }, res) => {
-    selectedScenarios =
+  app.post('/', ({ body: { scenarios: scenariosBody, ...rest } }, res) => {
+    let updatedScenarios = groupNames.reduce<string[]>((result, groupName) => {
+      if (rest[groupName]) {
+        result.push(rest[groupName]);
+      }
+
+      return result;
+    }, []);
+    updatedScenarios = updatedScenarios.concat(
       scenariosBody == null
         ? []
         : typeof scenariosBody === 'string'
         ? [scenariosBody]
-        : scenariosBody;
-
-    res.render('index.njk', {
-      scenarios: scenarios.map(scenario => ({
-        name: scenario,
-        checked: selectedScenarios.includes(scenario),
-      })),
-      updatedScenarios: selectedScenarios,
-    });
+        : scenariosBody,
+    );
 
     router = createRouter({
       defaultMocks,
       scenarioMocks,
-      selectedScenarios,
+      selectedScenarios: updatedScenarios,
+    });
+
+    updateScenarios(updatedScenarios);
+
+    const { groups, other } = getPageVariables(scenarioMocks, updatedScenarios);
+
+    res.render('index.njk', {
+      groups,
+      other,
+      updatedScenarios,
     });
   });
 
@@ -77,7 +112,7 @@ export function run({
       }
 
       for (const scenario of scenariosBody) {
-        if (!scenarios.includes(scenario)) {
+        if (!scenarioNames.includes(scenario)) {
           res.status(400).json({
             message: `Scenario "${scenario}" does not exist`,
           });
@@ -85,13 +120,18 @@ export function run({
         }
       }
 
-      selectedScenarios = scenariosBody;
+      try {
+        router = createRouter({
+          defaultMocks,
+          scenarioMocks,
+          selectedScenarios: scenariosBody,
+        });
+      } catch ({ message }) {
+        res.status(500).json({ message });
+        return;
+      }
 
-      router = createRouter({
-        defaultMocks,
-        scenarioMocks,
-        selectedScenarios,
-      });
+      updateScenarios(scenariosBody);
 
       res.sendStatus(204);
     },
@@ -106,6 +146,11 @@ export function run({
   return app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
+
+  function updateScenarios(updatedScenarios: string[]) {
+    selectedScenarios = updatedScenarios;
+    console.log('Selected scenarios', updatedScenarios);
+  }
 }
 
 function addDelay(delay: number) {
@@ -125,7 +170,10 @@ function reduceAllMocksForScenarios({
     return defaultMocks;
   }
 
-  const reducedMocks = selectedScenarios.reduce<Mock[]>(
+  const { reducedMocks } = selectedScenarios.reduce<{
+    groups: Record<string, string>;
+    reducedMocks: Mock[];
+  }>(
     (result, selectedScenario) => {
       const mocks = scenarioMocks[selectedScenario];
 
@@ -133,9 +181,26 @@ function reduceAllMocksForScenarios({
         return result;
       }
 
-      return result.concat(mocks);
+      if (Array.isArray(mocks)) {
+        result.reducedMocks = result.reducedMocks.concat(mocks);
+
+        return result;
+      }
+
+      if (result.groups[mocks.group]) {
+        throw new Error(
+          `Scenario "${selectedScenario}" cannot be selected, because scenario "${
+            result.groups[mocks.group]
+          }" from group "${mocks.group}" has already been selected`,
+        );
+      }
+
+      result.groups[mocks.group] = selectedScenario;
+      result.reducedMocks = result.reducedMocks.concat(mocks.mocks);
+
+      return result;
     },
-    [],
+    { groups: {}, reducedMocks: [] },
   );
 
   return defaultMocks
@@ -163,7 +228,6 @@ function createRouter({
 }: CreateRouterInput) {
   const router = Router();
 
-  console.log('Current scenarios:', selectedScenarios);
   const mocks: Mock[] = reduceAllMocksForScenarios({
     defaultMocks,
     scenarioMocks,
@@ -229,4 +293,67 @@ function createRouter({
   );
 
   return router;
+}
+
+function getPageVariables(
+  scenarioMocks: Scenarios,
+  selectedScenarios: string[],
+) {
+  const { other, ...groupedScenarios } = Object.entries(scenarioMocks).reduce<{
+    other: string[];
+    [key: string]: string[];
+  }>(
+    (result, [scenarioName, scenarioMock]) => {
+      if (Array.isArray(scenarioMock)) {
+        result.other.push(scenarioName);
+
+        return result;
+      }
+
+      const { group } = scenarioMock;
+
+      if (!result[group]) {
+        result[group] = [];
+      }
+
+      result[group].push(scenarioName);
+
+      return result;
+    },
+    { other: [] },
+  );
+
+  const groups = Object.entries(groupedScenarios).reduce<Groups>(
+    (result, [group, groupScenarios]) => {
+      let noneChecked = true;
+      const scenarios2 = groupScenarios.map(scenario => {
+        const checked = selectedScenarios.includes(scenario);
+        if (checked) {
+          noneChecked = false;
+        }
+
+        return {
+          name: scenario,
+          checked,
+        };
+      });
+
+      result.push({
+        noneChecked,
+        name: group,
+        scenarios: scenarios2,
+      });
+
+      return result;
+    },
+    [],
+  );
+
+  return {
+    groups,
+    other: other.map(scenario => ({
+      name: scenario,
+      checked: selectedScenarios.includes(scenario),
+    })),
+  };
 }

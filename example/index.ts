@@ -33,13 +33,26 @@ run({
     },
   ],
   scenarios: {
-    cheese: [
-      {
-        url: '/api/test-me',
-        method: 'GET',
-        response: { blue: 'cheese' },
-      },
-    ],
+    blueCheese: {
+      group: 'cheese',
+      mocks: [
+        {
+          url: '/api/test-me',
+          method: 'GET',
+          response: { blue: 'cheese' },
+        },
+      ],
+    },
+    redCheese: {
+      group: 'cheese',
+      mocks: [
+        {
+          url: '/api/test-me',
+          method: 'GET',
+          response: { red: 'leicester' },
+        },
+      ],
+    },
     fish: [
       {
         url: '/api/test-me-2',
