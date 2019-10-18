@@ -1,5 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import nunjucks from 'nunjucks';
+import path from 'path';
 
 import { Scenarios, Options, Mock, ResponseFunction } from './types';
 
@@ -50,6 +51,7 @@ export function run({
     express: app,
   });
 
+  app.use(express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
 
