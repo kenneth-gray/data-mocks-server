@@ -26,12 +26,10 @@ export function run({
   scenarios: scenarioMocks = {},
   options = {},
 }: Input) {
-  let selectedScenarios: string[] = [];
-  let router = createRouter({
-    defaultMocks,
-    scenarioMocks,
-    selectedScenarios,
-  });
+  let selectedScenarios: string[];
+  let router: Router;
+  updateScenarios([]);
+
   const app = express();
   const scenarioNames = Object.keys(scenarioMocks);
   const groupNames = Object.values(scenarioMocks).reduce<string[]>(
@@ -83,12 +81,6 @@ export function run({
         : scenariosBody,
     );
 
-    router = createRouter({
-      defaultMocks,
-      scenarioMocks,
-      selectedScenarios: updatedScenarios,
-    });
-
     updateScenarios(updatedScenarios);
 
     const { groups, other } = getPageVariables(scenarioMocks, updatedScenarios);
@@ -121,21 +113,20 @@ export function run({
       }
 
       try {
-        router = createRouter({
-          defaultMocks,
-          scenarioMocks,
-          selectedScenarios: scenariosBody,
-        });
+        updateScenarios(scenariosBody);
       } catch ({ message }) {
-        res.status(500).json({ message });
+        res.status(400).json({ message });
         return;
       }
-
-      updateScenarios(scenariosBody);
 
       res.sendStatus(204);
     },
   );
+
+  app.put('/reset-scenarios', (_, res) => {
+    updateScenarios([]);
+    res.sendStatus(204);
+  });
 
   app.use(function middleware(req, res, next) {
     router(req, res, next);
@@ -148,6 +139,12 @@ export function run({
   });
 
   function updateScenarios(updatedScenarios: string[]) {
+    router = createRouter({
+      defaultMocks,
+      scenarioMocks,
+      selectedScenarios: updatedScenarios,
+    });
+
     selectedScenarios = updatedScenarios;
     console.log('Selected scenarios', updatedScenarios);
   }
