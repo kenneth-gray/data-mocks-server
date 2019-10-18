@@ -83,17 +83,6 @@ export function run({
         : scenariosBody,
     );
 
-    const { groups, other } = getPageVariables(
-      scenarioMocks,
-      selectedScenarios,
-    );
-
-    res.render('index.njk', {
-      groups,
-      other,
-      updatedScenarios,
-    });
-
     router = createRouter({
       defaultMocks,
       scenarioMocks,
@@ -101,6 +90,14 @@ export function run({
     });
 
     updateScenarios(updatedScenarios);
+
+    const { groups, other } = getPageVariables(scenarioMocks, updatedScenarios);
+
+    res.render('index.njk', {
+      groups,
+      other,
+      updatedScenarios,
+    });
   });
 
   app.put(
