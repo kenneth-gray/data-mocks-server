@@ -70,4 +70,10 @@ run({
     ],
     bear: [],
   },
+  options: {
+    port: 5000,
+    uiPath: '/scenarios',
+    modifyScenariosPath: '/modify',
+    resetScenariosPath: '/reset',
+  },
 });

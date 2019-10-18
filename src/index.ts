@@ -30,6 +30,12 @@ export function run({
   let router: Router;
   updateScenarios([]);
 
+  const {
+    port = 3000,
+    uiPath = '/',
+    modifyScenariosPath = '/modify-scenarios',
+    resetScenariosPath = '/reset-scenarios',
+  } = options;
   const app = express();
   const scenarioNames = Object.keys(scenarioMocks);
   const groupNames = Object.values(scenarioMocks).reduce<string[]>(
@@ -49,11 +55,11 @@ export function run({
     express: app,
   });
 
-  app.use(express.static(path.join(__dirname, 'assets')));
+  app.use(uiPath, express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
 
-  app.get('/', (_, res) => {
+  app.get(uiPath, (_, res) => {
     const { groups, other } = getPageVariables(
       scenarioMocks,
       selectedScenarios,
@@ -65,7 +71,7 @@ export function run({
     });
   });
 
-  app.post('/', ({ body: { scenarios: scenariosBody, ...rest } }, res) => {
+  app.post(uiPath, ({ body: { scenarios: scenariosBody, ...rest } }, res) => {
     let updatedScenarios = groupNames.reduce<string[]>((result, groupName) => {
       if (rest[groupName]) {
         result.push(rest[groupName]);
@@ -93,7 +99,7 @@ export function run({
   });
 
   app.put(
-    '/modify-scenarios',
+    modifyScenariosPath,
     ({ body: { scenarios: scenariosBody } }, res) => {
       if (!Array.isArray(scenariosBody)) {
         res.status(400).json({
@@ -123,7 +129,7 @@ export function run({
     },
   );
 
-  app.put('/reset-scenarios', (_, res) => {
+  app.put(resetScenariosPath, (_, res) => {
     updateScenarios([]);
     res.sendStatus(204);
   });
@@ -131,8 +137,6 @@ export function run({
   app.use(function middleware(req, res, next) {
     router(req, res, next);
   });
-
-  const { port = 3000 } = options;
 
   return app.listen(port, () => {
     console.log(`Server running on port ${port}`);

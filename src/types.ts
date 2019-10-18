@@ -30,4 +30,7 @@ export type Mock = {
 
 export type Options = {
   port?: number;
+  uiPath?: string;
+  modifyScenariosPath?: string;
+  resetScenariosPath?: string;
 };
