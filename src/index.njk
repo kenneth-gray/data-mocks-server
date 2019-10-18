@@ -21,47 +21,53 @@
     {% endif %}
     <form class="stack-1" method="POST" action="/">
       <legend><h1>Scenarios</h1></legend>
-      <a href="/">Refresh page</a>
-      <div>
+      <p>
+        <a href="/">Refresh page</a>
+      </p>
+      <div class="stack0">
         {% for group in groups %}
-          <h2>{{group.name | capitalize}}</h2>
           <div>
-            <input
-              type="radio"
-              id="none-{{group.name}}"
-              name="{{group.name}}"
-              value=""
-              {% if group.noneChecked %}checked{% endif %}
-            />
-            <label for="none-{{group.name}}">None</label>
-          </div>
-          {% for scenario in group.scenarios %}
+            <h2>{{group.name | capitalize}}</h2>
             <div>
               <input
                 type="radio"
-                id="{{scenario.name}}"
+                id="none-{{group.name}}"
                 name="{{group.name}}"
-                value="{{scenario.name}}"
-                {% if scenario.checked %}checked{% endif %}
+                value=""
+                {% if group.noneChecked %}checked{% endif %}
               />
-              <label for="{{scenario.name}}">{{scenario.name}}</label>
+              <label for="none-{{group.name}}">No "{{group.name}}" scenario</label>
             </div>
-          {% endfor %}
+            {% for scenario in group.scenarios %}
+              <div>
+                <input
+                  type="radio"
+                  id="{{scenario.name}}"
+                  name="{{group.name}}"
+                  value="{{scenario.name}}"
+                  {% if scenario.checked %}checked{% endif %}
+                />
+                <label for="{{scenario.name}}">{{scenario.name}}</label>
+              </div>
+            {% endfor %}
+          </div>
         {% endfor %}
         {% if other.length %}
-        <h2>Other</h2>
-        {% for scenario in other %}
         <div>
-          <input
-            type="checkbox"
-            id="{{scenario.name}}"
-            name="scenarios"
-            value="{{scenario.name}}"
-            {% if scenario.checked %}checked{% endif %}
-          />
-          <label for="{{scenario.name}}">{{scenario.name}}</label>
+          <h2>Other</h2>
+          {% for scenario in other %}
+          <div>
+            <input
+              type="checkbox"
+              id="{{scenario.name}}"
+              name="scenarios"
+              value="{{scenario.name}}"
+              {% if scenario.checked %}checked{% endif %}
+            />
+            <label for="{{scenario.name}}">{{scenario.name}}</label>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
         {% endif %}
       </div>
       <button type="submit">Modify scenarios</button>
