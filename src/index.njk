@@ -26,24 +26,44 @@
       </p>
       <div class="stack0">
         {% for group in groups %}
-          <div>
+          <div class="stack-3">
             <h2>{{group.name | capitalize}}</h2>
-            <div>
-              <input
-                type="radio"
-                id="none-{{group.name}}"
-                name="{{group.name}}"
-                value=""
-                {% if group.noneChecked %}checked{% endif %}
-              />
-              <label for="none-{{group.name}}">No "{{group.name}}" scenario</label>
-            </div>
-            {% for scenario in group.scenarios %}
+            <div class="stack-3">
               <div>
                 <input
                   type="radio"
-                  id="{{scenario.name}}"
+                  id="none-{{group.name}}"
                   name="{{group.name}}"
+                  value=""
+                  {% if group.noneChecked %}checked{% endif %}
+                />
+                <label for="none-{{group.name}}">No "{{group.name}}" scenario</label>
+              </div>
+              {% for scenario in group.scenarios %}
+                <div>
+                  <input
+                    type="radio"
+                    id="{{scenario.name}}"
+                    name="{{group.name}}"
+                    value="{{scenario.name}}"
+                    {% if scenario.checked %}checked{% endif %}
+                  />
+                  <label for="{{scenario.name}}">{{scenario.name}}</label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+        {% if other.length %}
+        <div class="stack-3">
+          <h2>Other</h2>
+          <div class="stack-3">
+            {% for scenario in other %}
+              <div>
+                <input
+                  type="checkbox"
+                  id="{{scenario.name}}"
+                  name="scenarios"
                   value="{{scenario.name}}"
                   {% if scenario.checked %}checked{% endif %}
                 />
@@ -51,26 +71,10 @@
               </div>
             {% endfor %}
           </div>
-        {% endfor %}
-        {% if other.length %}
-        <div>
-          <h2>Other</h2>
-          {% for scenario in other %}
-          <div>
-            <input
-              type="checkbox"
-              id="{{scenario.name}}"
-              name="scenarios"
-              value="{{scenario.name}}"
-              {% if scenario.checked %}checked{% endif %}
-            />
-            <label for="{{scenario.name}}">{{scenario.name}}</label>
-          </div>
-          {% endfor %}
         </div>
         {% endif %}
+        <button type="submit">Modify scenarios</button>
       </div>
-      <button type="submit">Modify scenarios</button>
     </form>
   </body>
 </html>

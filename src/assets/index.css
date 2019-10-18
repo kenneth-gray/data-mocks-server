@@ -107,6 +107,10 @@ button:focus {
   background-color: #6a5acd;
 }
 
+.stack-3 > * + * {
+  margin-top: calc(1rem / (1.5 * 1.5 * 1.5));
+}
+
 .stack-1 > * + * {
   margin-top: calc(1rem / 1.5);
 }

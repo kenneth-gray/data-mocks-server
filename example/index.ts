@@ -68,5 +68,6 @@ run({
         response: { blue: 'tang' },
       },
     ],
+    bear: [],
   },
 });
