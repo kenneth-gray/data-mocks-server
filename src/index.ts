@@ -115,7 +115,7 @@ export function run({
       try {
         updateScenarios(scenariosBody);
       } catch ({ message }) {
-        res.status(500).json({ message });
+        res.status(400).json({ message });
         return;
       }
 
