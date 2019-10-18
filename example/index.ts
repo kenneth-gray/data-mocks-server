@@ -53,6 +53,14 @@ run({
         },
       ],
     },
+    tigerBread: {
+      group: 'bread',
+      mocks: [],
+    },
+    baguette: {
+      group: 'bread',
+      mocks: [],
+    },
     fish: [
       {
         url: '/api/test-me-2',
