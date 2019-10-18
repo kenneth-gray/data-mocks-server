@@ -123,6 +123,11 @@ export function run({
     },
   );
 
+  app.put('/reset-scenarios', (_, res) => {
+    updateScenarios([]);
+    res.sendStatus(204);
+  });
+
   app.use(function middleware(req, res, next) {
     router(req, res, next);
   });
