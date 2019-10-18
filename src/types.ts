@@ -1,5 +1,10 @@
 export type Scenarios = {
-  [scenario: string]: Mock[];
+  [scenario: string]:
+    | Mock[]
+    | {
+        group: string;
+        mocks: Mock[];
+      };
 };
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';

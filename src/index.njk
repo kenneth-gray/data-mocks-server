@@ -135,7 +135,34 @@
     <form class="stack-1" method="POST" action="/">
       <legend><h1>Scenarios</h1></legend>
       <div>
-      {% for scenario in scenarios %}
+        {% for group in groups %}
+          <h2>{{group.name | capitalize}}</h2>
+          <div>
+            <input
+              type="radio"
+              id="none-{{group.name}}"
+              name="{{group.name}}"
+              value=""
+              {% if group.noneChecked %}checked{% endif %}
+            />
+            <label for="none-{{group.name}}">None</label>
+          </div>
+          {% for scenario in group.scenarios %}
+            <div>
+              <input
+                type="radio"
+                id="{{scenario.name}}"
+                name="{{group.name}}"
+                value="{{scenario.name}}"
+                {% if scenario.checked %}checked{% endif %}
+              />
+              <label for="{{scenario.name}}">{{scenario.name}}</label>
+            </div>
+          {% endfor %}
+        {% endfor %}
+        {% if other.length %}
+        <h2>Other</h2>
+        {% for scenario in other %}
         <div>
           <input
             type="checkbox"
@@ -146,7 +173,8 @@
           />
           <label for="{{scenario.name}}">{{scenario.name}}</label>
         </div>
-      {% endfor %}
+        {% endfor %}
+        {% endif %}
       </div>
       <button type="submit">Modify scenarios</button>
     </form>
