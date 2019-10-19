@@ -1,5 +1,3 @@
-import { Server } from 'net';
-
 export type Scenarios = {
   [scenario: string]:
     | Mock[]
@@ -45,7 +43,3 @@ export type Groups = Array<{
     checked: boolean;
   }>;
 }>;
-
-export type DataMockServer = Server & {
-  kill: (callback?: (err?: Error) => void) => DataMockServer;
-};

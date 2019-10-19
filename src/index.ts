@@ -1,16 +1,9 @@
 import express, { Router, Request, Response } from 'express';
-import { Socket } from 'net';
 import nunjucks from 'nunjucks';
 import path from 'path';
+import { transform } from 'server-with-kill';
 
-import {
-  DataMockServer,
-  Groups,
-  Mock,
-  Options,
-  ResponseFunction,
-  Scenarios,
-} from './types';
+import { Groups, Mock, Options, ResponseFunction, Scenarios } from './types';
 
 export * from './types';
 
@@ -137,30 +130,11 @@ export function run({
     router(req, res, next);
   });
 
-  let connections: Socket[] = [];
-  const server: DataMockServer = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  }) as any;
-
-  server.on('connection', connection => {
-    connections.push(connection);
-
-    connection.on('close', () => {
-      connections = connections.filter(
-        currentConnection => currentConnection !== connection,
-      );
-    });
-  });
-
-  server.kill = (cb?: (err?: Error) => void) => {
-    connections.forEach(connection => {
-      connection.destroy();
-    });
-
-    return server.close(cb);
-  };
-
-  return server;
+  return transform(
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    }),
+  );
 
   function updateScenarios(updatedScenarios: string[]) {
     router = createRouter({
