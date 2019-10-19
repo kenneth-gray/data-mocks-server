@@ -9,10 +9,11 @@
   ],
   "scripts": {
     "commit": "git-cz",
-    "build": "rimraf lib && tsc -p . && copyfiles -f src/index.njk lib && copyfiles -f src/assets/* lib/assets",
+    "build": "rimraf lib && tsc -p . && copyfiles -f src/index.njk lib && copyfiles -f src/assets/* lib/assets && rimraf lib/*.spec.*",
     "lint": "eslint src/*.ts && eslint example/*.ts",
     "example": "nodemon --watch src --watch example --ext ts,njk,css --exec 'ts-node example'",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "test": "jest"
   },
   "keywords": [
     "mocks",
@@ -27,7 +28,9 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.1",
+    "@types/jest": "^24.0.19",
     "@types/nunjucks": "^3.1.2",
+    "@types/request-promise-native": "^1.0.17",
     "@typescript-eslint/eslint-plugin": "^2.3.3",
     "@typescript-eslint/parser": "^2.3.3",
     "commitizen": "^4.0.3",
@@ -36,10 +39,14 @@
     "eslint": "^6.5.1",
     "eslint-config-prettier": "^6.4.0",
     "eslint-plugin-prettier": "^3.1.1",
+    "jest": "^24.9.0",
     "nodemon": "^1.19.3",
     "prettier": "^1.18.2",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7",
     "rimraf": "^3.0.0",
     "semantic-release": "^15.13.24",
+    "ts-jest": "^24.1.0",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.4"
   },
