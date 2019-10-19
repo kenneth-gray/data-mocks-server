@@ -1,3 +1,5 @@
+import { Server } from 'net';
+
 export type Scenarios = {
   [scenario: string]:
     | Mock[]
@@ -33,4 +35,17 @@ export type Options = {
   uiPath?: string;
   modifyScenariosPath?: string;
   resetScenariosPath?: string;
+};
+
+export type Groups = Array<{
+  name: string;
+  noneChecked: boolean;
+  scenarios: Array<{
+    name: string;
+    checked: boolean;
+  }>;
+}>;
+
+export type DataMockServer = Server & {
+  kill: (callback?: (err?: Error) => void) => DataMockServer;
 };

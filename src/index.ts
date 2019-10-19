@@ -1,19 +1,18 @@
 import express, { Router, Request, Response } from 'express';
+import { Socket } from 'net';
 import nunjucks from 'nunjucks';
 import path from 'path';
 
-import { Scenarios, Options, Mock, ResponseFunction } from './types';
+import {
+  DataMockServer,
+  Groups,
+  Mock,
+  Options,
+  ResponseFunction,
+  Scenarios,
+} from './types';
 
 export * from './types';
-
-type Groups = Array<{
-  name: string;
-  noneChecked: boolean;
-  scenarios: Array<{
-    name: string;
-    checked: boolean;
-  }>;
-}>;
 
 type Input = {
   default: Mock[];
@@ -138,9 +137,30 @@ export function run({
     router(req, res, next);
   });
 
-  return app.listen(port, () => {
+  let connections: Socket[] = [];
+  const server: DataMockServer = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+  }) as any;
+
+  server.on('connection', connection => {
+    connections.push(connection);
+
+    connection.on('close', () => {
+      connections = connections.filter(
+        currentConnection => currentConnection !== connection,
+      );
+    });
   });
+
+  server.kill = (cb?: (err?: Error) => void) => {
+    connections.forEach(connection => {
+      connection.destroy();
+    });
+
+    return server.close(cb);
+  };
+
+  return server;
 
   function updateScenarios(updatedScenarios: string[]) {
     router = createRouter({
