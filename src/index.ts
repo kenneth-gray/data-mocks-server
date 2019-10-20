@@ -1,9 +1,19 @@
 import express, { Router, Request, Response } from 'express';
+import gql from 'graphql-tag';
 import nunjucks from 'nunjucks';
 import path from 'path';
 import { transform } from 'server-with-kill';
 
-import { Groups, Mock, Options, ResponseFunction, Scenarios } from './types';
+import {
+  GraphqlMock,
+  Groups,
+  Mock,
+  Options,
+  ResponseFunction,
+  Scenarios,
+  MockResponse,
+} from './types';
+import { NextFunction } from 'connect';
 
 export * from './types';
 
@@ -126,7 +136,7 @@ export function run({
     res.sendStatus(204);
   });
 
-  app.use(function middleware(req, res, next) {
+  app.use((req, res, next) => {
     router(req, res, next);
   });
 
@@ -172,6 +182,8 @@ function reduceAllMocksForScenarios({
     (result, selectedScenario) => {
       const mocks = scenarioMocks[selectedScenario];
 
+      // TODO: This should not happen. You can't pick invalid scenarios when using
+      // `modify-scenarios`, but it is possible to hack the UI
       if (!mocks) {
         return result;
       }
@@ -198,15 +210,58 @@ function reduceAllMocksForScenarios({
     { groups: {}, reducedMocks: [] },
   );
 
-  return defaultMocks
-    .filter(
-      defaultMock =>
-        !reducedMocks.find(
-          mock =>
-            mock.url.toString() === defaultMock.url.toString() &&
-            defaultMock.method === mock.method,
+  const defaultMocksFilteredGraphql = defaultMocks.reduce<Mock[]>(
+    (result, defaultMock) => {
+      if (defaultMock.method !== 'GRAPHQL') {
+        result.push(defaultMock);
+
+        return result;
+      }
+
+      const filteredGraphqlMock = {
+        ...defaultMock,
+        operations: defaultMock.operations.filter(
+          ({ operationName: defaultMockOperationName }) => {
+            if (
+              reducedMocks.some(
+                mock =>
+                  mock.method === 'GRAPHQL' &&
+                  mock.url === defaultMock.url &&
+                  mock.operations.some(
+                    ({ operationName }) =>
+                      operationName === defaultMockOperationName,
+                  ),
+              )
+            ) {
+              // Remove defaultMock operation
+              return false;
+            }
+
+            return true;
+          },
         ),
-    )
+      };
+
+      result.push(filteredGraphqlMock);
+
+      return result;
+    },
+    [],
+  );
+
+  return defaultMocksFilteredGraphql
+    .filter(defaultMock => {
+      // Multiple graphql urls are allowed and the graphql operations have veen filtered out above
+      if (defaultMock.method === 'GRAPHQL') {
+        return true;
+      }
+
+      return !reducedMocks.some(
+        mock =>
+          mock.url.toString() === defaultMock.url.toString() &&
+          defaultMock.method === mock.method,
+      );
+    })
     .concat(reducedMocks);
 }
 
@@ -223,67 +278,81 @@ function createRouter({
 }: CreateRouterInput) {
   const router = Router();
 
-  const mocks: Mock[] = reduceAllMocksForScenarios({
+  const grapqhlUrlToHandlers: Record<
+    string,
+    {
+      queries: GraphqlHandler[];
+      mutations: GraphqlHandler[];
+    }
+  > = {};
+  const mocks = reduceAllMocksForScenarios({
     defaultMocks,
     scenarioMocks,
     selectedScenarios,
   });
 
-  mocks.forEach(
-    ({
-      method,
-      url,
-      response,
-      responseCode = 200,
-      responseHeaders,
-      delay = 0,
-    }) => {
-      function handler(req: Request, res: Response) {
-        if (typeof response === 'function') {
-          (response as ResponseFunction)(req).then(result => {
-            res
-              .set(result.responseHeaders)
-              .status(result.responseCode || 200)
-              .json(result.response);
-          });
+  mocks.forEach(mock => {
+    if (mock.method === 'GRAPHQL') {
+      const { queries, mutations } = mock.operations.reduce<{
+        queries: GraphqlHandler[];
+        mutations: GraphqlHandler[];
+      }>(
+        (result, operation) => {
+          const handler = createGraphqlHandler(operation);
 
-          return;
-        }
+          if (operation.type === 'mutation') {
+            result.mutations.push(handler);
+          } else {
+            result.queries.push(handler);
+          }
 
-        addDelay(delay).then(() => {
-          res
-            .set(responseHeaders)
-            .status(responseCode)
-            .json(response);
-        });
+          return result;
+        },
+        { queries: [], mutations: [] },
+      );
+
+      if (!grapqhlUrlToHandlers[mock.url]) {
+        grapqhlUrlToHandlers[mock.url] = { queries: [], mutations: [] };
       }
 
-      switch (method) {
-        case 'GET':
-          router.get(url, function routeGet(req, res) {
-            handler(req, res);
-          });
-          break;
-        case 'POST':
-          router.post(url, function routePost(req, res) {
-            handler(req, res);
-          });
-          break;
-        case 'PUT':
-          router.put(url, function routePut(req, res) {
-            handler(req, res);
-          });
-          break;
-        case 'DELETE':
-          router.delete(url, function routeDelete(req, res) {
-            handler(req, res);
-          });
-          break;
-        default:
-          throw new Error(
-            `Unrecognised HTTP method ${method} - please check your mock configuration`,
-          );
-      }
+      grapqhlUrlToHandlers[mock.url].queries = grapqhlUrlToHandlers[
+        mock.url
+      ].queries.concat(queries);
+      grapqhlUrlToHandlers[mock.url].mutations = grapqhlUrlToHandlers[
+        mock.url
+      ].mutations.concat(mutations);
+
+      return;
+    }
+
+    const { method, url, ...rest } = mock;
+
+    const handler = createHandler(rest);
+
+    switch (mock.method) {
+      case 'GET':
+        router.get(url, handler);
+        break;
+      case 'POST':
+        router.post(url, handler);
+        break;
+      case 'PUT':
+        router.put(url, handler);
+        break;
+      case 'DELETE':
+        router.delete(url, handler);
+        break;
+      default:
+        throw new Error(
+          `Unrecognised HTTP method ${method} - please check your mock configuration`,
+        );
+    }
+  });
+
+  Object.entries(grapqhlUrlToHandlers).forEach(
+    ([url, { queries, mutations }]) => {
+      router.get(url, createGraphqlRequestHandler(queries));
+      router.post(url, createGraphqlRequestHandler(queries.concat(mutations)));
     },
   );
 
@@ -319,9 +388,9 @@ function getPageVariables(
   );
 
   const groups = Object.entries(groupedScenarios).reduce<Groups>(
-    (result, [group, groupScenarios]) => {
+    (result, [name, groupScenarios]) => {
       let noneChecked = true;
-      const scenarios2 = groupScenarios.map(scenario => {
+      const scenarios = groupScenarios.map(scenario => {
         const checked = selectedScenarios.includes(scenario);
         if (checked) {
           noneChecked = false;
@@ -335,8 +404,8 @@ function getPageVariables(
 
       result.push({
         noneChecked,
-        name: group,
-        scenarios: scenarios2,
+        name,
+        scenarios,
       });
 
       return result;
@@ -350,5 +419,124 @@ function getPageVariables(
       name: scenario,
       checked: selectedScenarios.includes(scenario),
     })),
+  };
+}
+
+type GraphqlHandler = (
+  req: {
+    body: Request['body'] & {
+      operationName: string;
+      variables: any;
+      query: string;
+    };
+    params: Request['params'];
+    query: Request['query'];
+  },
+  res: Response,
+) => boolean;
+
+function createGraphqlHandler({
+  operationName: operationNameToCheck,
+  ...rest
+}: {
+  operationName: string;
+  response: GraphqlMock['operations'][0]['response'];
+  responseCode?: number;
+  responseHeaders?: Record<string, string>;
+  delay?: number;
+}) {
+  const handler = createHandler(rest);
+
+  const graphqlHandler: GraphqlHandler = (req, res) => {
+    if (operationNameToCheck === req.body.operationName) {
+      handler(
+        {
+          operationName: req.body.operationName,
+          query: req.body.query,
+          variables: req.body.variables,
+        },
+        res,
+      );
+
+      return true;
+    }
+
+    return false;
+  };
+
+  return graphqlHandler;
+}
+
+function createHandler<TResponse, TInput>({
+  response,
+  responseCode = 200,
+  responseHeaders,
+  delay = 0,
+}: {
+  response: MockResponse<TResponse, TInput>;
+  responseCode?: number;
+  responseHeaders?: Record<string, string>;
+  delay?: number;
+}) {
+  return (req: TInput, res: Response) => {
+    if (typeof response === 'function') {
+      ((response as unknown) as ResponseFunction<TResponse, TInput>)(req).then(
+        result => {
+          res
+            .set(result.responseHeaders)
+            .status(result.responseCode || 200)
+            .json(result.response);
+        },
+      );
+
+      return;
+    }
+
+    addDelay(delay).then(() => {
+      res
+        .set(responseHeaders)
+        .status(responseCode)
+        .json(response);
+    });
+  };
+}
+
+function createGraphqlRequestHandler(handlers: GraphqlHandler[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const query = req.body.query || req.query.query || '';
+
+    let variables = req.body.variables;
+    if (variables === undefined) {
+      if (req.query.variables) {
+        try {
+          variables = JSON.parse(req.query.variables);
+        } catch (error) {}
+      }
+    }
+    variables = variables || null;
+
+    let operationName = req.body.operationName || req.query.operationName || '';
+    if (!operationName && query) {
+      try {
+        operationName = gql(query).definitions[0].name.value;
+      } catch (error) {}
+    }
+
+    for (const handler of handlers) {
+      const responseHandled = handler(
+        {
+          body: { ...req.body, operationName, variables, query },
+          params: req.params,
+          query: req.query,
+        },
+        res,
+      );
+
+      if (responseHandled) {
+        return;
+      }
+    }
+
+    next();
   };
 }

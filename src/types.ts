@@ -9,24 +9,55 @@ export type Scenarios = {
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-export type ResponseFunction = (input: {
-  query: Record<string, string | Array<string>>;
-  body: Record<string, any>;
-  params: Record<string, string>;
-}) => Promise<{
-  response: Record<string, any> | string;
+export type ResponseFunction<TResponse, TInput> = (
+  input: TInput,
+) => Promise<{
+  response: TResponse;
   responseHeaders?: Record<string, string>;
   responseCode?: number;
 }>;
 
-export type Mock = {
+export type MockResponse<TResponse, TInput> =
+  | TResponse
+  | ResponseFunction<TResponse, TInput>;
+
+export type HttpMock = {
   url: string | RegExp;
   method: HttpMethod;
-  response: Record<string, any> | string | ResponseFunction;
+  response: MockResponse<
+    Record<string, any> | string,
+    {
+      query: Record<string, string | Array<string>>;
+      body: Record<string, any>;
+      params: Record<string, string>;
+    }
+  >;
   responseCode?: number;
   responseHeaders?: Record<string, string>;
   delay?: number;
 };
+
+export type GraphqlMock = {
+  url: string;
+  method: 'GRAPHQL';
+  operations: Array<{
+    type: 'query' | 'mutation';
+    operationName: string;
+    response: MockResponse<
+      { data?: Record<string, any>; errors?: Array<any> } | Record<string, any>,
+      {
+        operationName: string;
+        query: string;
+        variables: null | Record<string, any>;
+      }
+    >;
+    responseCode?: number;
+    responseHeaders?: Record<string, string>;
+    delay?: number;
+  }>;
+};
+
+export type Mock = HttpMock | GraphqlMock;
 
 export type Options = {
   port?: number;
