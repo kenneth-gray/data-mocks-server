@@ -88,6 +88,78 @@ describe('run', () => {
         server.kill(done);
       });
     });
+
+    it('can use functions for responses', done => {
+      const server = run({
+        default: [
+          {
+            url: '/test-function/:id',
+            method: 'POST',
+            response: ({ body, query, params }) => ({
+              body,
+              query,
+              params,
+            }),
+          },
+        ],
+      });
+
+      server.on('listening', async () => {
+        const id = 'some-id';
+        const testQuery = 'test-query';
+        const body = { some: 'body' };
+        const response = await rp.post(
+          `http://localhost:3000/test-function/${id}?testQuery=${testQuery}`,
+          { json: true, body },
+        );
+
+        safeExpect(server, response).toEqual({
+          body,
+          query: {
+            testQuery,
+          },
+          params: { id },
+        });
+
+        server.kill(done);
+      });
+    });
+
+    it('can use async functions for responses', done => {
+      const server = run({
+        default: [
+          {
+            url: '/test-function/:id',
+            method: 'POST',
+            response: async ({ body, query, params }) => ({
+              body,
+              query,
+              params,
+            }),
+          },
+        ],
+      });
+
+      server.on('listening', async () => {
+        const id = 'some-id';
+        const testQuery = 'test-query';
+        const body = { some: 'body' };
+        const response = await rp.post(
+          `http://localhost:3000/test-function/${id}?testQuery=${testQuery}`,
+          { json: true, body },
+        );
+
+        safeExpect(server, response).toEqual({
+          body,
+          query: {
+            testQuery,
+          },
+          params: { id },
+        });
+
+        server.kill(done);
+      });
+    });
   });
 
   describe('scenarios', () => {

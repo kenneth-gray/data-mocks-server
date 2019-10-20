@@ -18,6 +18,7 @@ This package was originally a port of https://github.com/ovotech/data-mocks that
   - [GraphqlMock](#graphqlmock)
     - [Operation](#operation)
   - [GraphqlResponseFunction](#graphqlresponsefunction)
+  - [Override](#override)
 
 ## Installation
 
@@ -109,24 +110,22 @@ See [Mock](#mock) for more details.
 | url             | `string` / `RegExp`                          | _required_  | Path of endpoint.                                                                                                                  |
 | method          | `GET` / `POST` / `PUT` / `DELETE`            | _required_  | HTTP method of endpoint.                                                                                                           |
 | response        | `string` / `object` / `HttpResponseFunction` | _required_  | `string` and `object` will be json responses for the endpoint. See [HttpResponseFunction](#httpresponsefunction) for more details. |
-| responseCode    | `number`                                     | `200`       | HTTP status code for response. Unused when `response` is a `ResponseFunction`.                                                     |
-| responseHeaders | `object` / `undefined`                       | `undefined` | Key/value pairs of HTTP headers for response. Unused when `response` is a `ResponseFunction`.                                      |
-| delay           | `number`                                     | `0`         | Number of milliseconds before the response is returned. Unused when `response` is a `ResponseFunction`.                            |
+| responseCode    | `number`                                     | `200`       | HTTP status code for response.                                                                                                     |
+| responseHeaders | `object` / `undefined`                       | `undefined` | Key/value pairs of HTTP headers for response.                                                                                      |
+| delay           | `number`                                     | `0`         | Number of milliseconds before the response is returned.                                                                            |
 
 ### HttpResponseFunction
 
-> `function({ query, body, params }): Promise<{ response, responseCode, responseHeaders }>`
+> `function({ query, body, params }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property        | Type                   | Default     | Description                                   |
-|-----------------|------------------------|-------------|-----------------------------------------------|
-| query           | `object`               | `{}`        | query object as defined by `express`.         |
-| body            | `object`               | `{}`        | body object as defined by `express`.          |
-| params          | `object`               | `{}`        | params object as defined by `express`.        |
-| response        | `string` / `object`    | _required_  | JSON response.                                |
-| responseCode    | `number`               | `200`       | HTTP status code for response.                |
-| responseHeaders | `object` / `undefined` | `undefined` | Key/value pairs of HTTP headers for response. |
+| Property | Type                             | Default    | Description                                                |
+|----------|----------------------------------|------------|------------------------------------------------------------|
+| query    | `object`                         | `{}`       | query object as defined by `express`.                      |
+| body     | `object`                         | `{}`       | body object as defined by `express`.                       |
+| params   | `object`                         | `{}`       | params object as defined by `express`.                     |
+| response | `string` / `object` / `Override` | _required_ | JSON response. See [Override](#override) for more details. |                       |
 
 ### GraphqlMock
 
@@ -157,15 +156,50 @@ See [Mock](#mock) for more details.
 
 ### GraphqlResponseFunction
 
-> `function({ operationName, query, variables }): Promise<{ response, responseCode, responseHeaders }>`
+> `function({ operationName, query, variables }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property        | Type                                          | Default     | Description                                                                                                                                 |
-|-----------------|-----------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| operationName   | `string`                                      | `''`        | operationName sent by client.                                                                                                               |
-| query           | `string`                                      | `''`        | GraphQL query                                                                                                                               |
-| variables       | `null` / `object`                             | `null`      | variables sent by client.                                                                                                                   |
-| response        | `{ data: object, errors?: array }` / `object` | _required_  | Standard GraphQL JSON response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. |
-| responseCode    | `number`                                      | `200`       | HTTP status code for response.                                                                                                              |
-| responseHeaders | `object` / `undefined`                        | `undefined` | Key/value pairs of HTTP headers for response.                                                                                               |
+| Property      | Type                                                       | Default    | Description                                                                                                                                                                             |
+|---------------|------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| operationName | `string`                                                   | `''`       | operationName sent by client.                                                                                                                                                           |
+| query         | `string`                                                   | `''`       | GraphQL query                                                                                                                                                                           |
+| variables     | `null` / `object`                                          | `null`     | variables sent by client.                                                                                                                                                               |
+| response      | `{ data: object, errors?: array }` / `object` / `Override` | _required_ | Standard GraphQL JSON response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. See [Override](#override) for more details. |
+
+### Override
+
+> `{ __override: { response, responseCode, responseHeaders, delay } }`
+
+Sometimes you may want an endpoint to both error and succeed depending on what is sent. It is the recommendation of this package that this can be achieved by using scenarios. However, as an escape hatch you can override `responseCode`, `responseHeaders` and `delay` by doing something similar to the following:
+
+```javascript
+const mock = {
+  url: '/some-url',
+  method: 'GET',
+  response: ({ body }) => {
+    if (body.name === 'error1') {
+      return {
+        __override: {
+          response: { message: 'something went wrong' },
+          responseCode: 400,
+          delay: 1000,
+        },
+      };
+    }
+
+    if (body.name === 'error2') {
+      return {
+        __override: {
+          response: { message: 'something else went wrong' },
+          responseCode: 500,
+          delay: 2000,
+        },
+      };
+    }
+
+    // No __override necessary, this is the response on success
+    return { message: 'success' };
+  },
+}
+```

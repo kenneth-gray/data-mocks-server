@@ -10,12 +10,10 @@ run({
     {
       url: '/api/return/:someId',
       method: 'GET',
-      response: async ({ query, params }) => {
+      response: ({ query, params }) => {
         return {
-          response: {
-            query,
-            params,
-          },
+          query,
+          params,
         };
       },
     },
@@ -24,10 +22,8 @@ run({
       method: 'POST',
       response: async ({ body, params }) => {
         return {
-          response: {
-            body,
-            params,
-          },
+          body,
+          params,
         };
       },
     },
@@ -64,12 +60,10 @@ run({
           operationName: 'Function',
           response: async ({ operationName, query, variables }) => {
             return {
-              response: {
-                data: {
-                  operationName,
-                  query,
-                  variables,
-                },
+              data: {
+                operationName,
+                query,
+                variables,
               },
             };
           },
