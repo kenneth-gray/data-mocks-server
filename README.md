@@ -121,9 +121,9 @@ See [Mock](#mock) for more details.
 
 | Property        | Type                   | Default     | Description                                   |
 |-----------------|------------------------|-------------|-----------------------------------------------|
-| query           | `object`               | {}          | query object as defined by `express`.         |
-| body            | `object`               | {}          | body object as defined by `express`.          |
-| params          | `object`               | {}          | params object as defined by `express`.        |
+| query           | `object`               | `{}`        | query object as defined by `express`.         |
+| body            | `object`               | `{}`        | body object as defined by `express`.          |
+| params          | `object`               | `{}`        | params object as defined by `express`.        |
 | response        | `string` / `object`    | _required_  | JSON response.                                |
 | responseCode    | `number`               | `200`       | HTTP status code for response.                |
 | responseHeaders | `object` / `undefined` | `undefined` | Key/value pairs of HTTP headers for response. |
@@ -163,9 +163,9 @@ See [Mock](#mock) for more details.
 
 | Property        | Type                                          | Default     | Description                                                                                                                                 |
 |-----------------|-----------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| operationName   | `string`                                      | ''          | operationName sent by client.                                                                                                               |
-| query           | `string`                                      | ''          | GraphQL query                                                                                                                               |
-| variables       | `null` / `object`                             | null        | variables sent by client.                                                                                                                   |
+| operationName   | `string`                                      | `''`        | operationName sent by client.                                                                                                               |
+| query           | `string`                                      | `''`        | GraphQL query                                                                                                                               |
+| variables       | `null` / `object`                             | `null`      | variables sent by client.                                                                                                                   |
 | response        | `{ data: object, errors?: array }` / `object` | _required_  | Standard GraphQL JSON response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. |
 | responseCode    | `number`                                      | `200`       | HTTP status code for response.                                                                                                              |
 | responseHeaders | `object` / `undefined`                        | `undefined` | Key/value pairs of HTTP headers for response.                                                                                               |
