@@ -9,13 +9,18 @@ export type Scenarios = {
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
+export type Override<TResponse> = {
+  __override: {
+    response: TResponse;
+    responseCode?: number;
+    responseHeaders?: Record<string, string>;
+    delay?: number;
+  };
+};
+
 export type ResponseFunction<TResponse, TInput> = (
   input: TInput,
-) => Promise<{
-  response: TResponse;
-  responseHeaders?: Record<string, string>;
-  responseCode?: number;
-}>;
+) => TResponse | Override<TResponse> | Promise<TResponse | Override<TResponse>>;
 
 export type MockResponse<TResponse, TInput> =
   | TResponse

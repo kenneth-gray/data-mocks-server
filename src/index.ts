@@ -12,6 +12,7 @@ import {
   ResponseFunction,
   Scenarios,
   MockResponse,
+  Override,
 } from './types';
 import { NextFunction } from 'connect';
 
@@ -331,16 +332,24 @@ function createRouter({
 
     switch (mock.method) {
       case 'GET':
-        router.get(url, handler);
+        router.get(url, (req, res) => {
+          handler(req, res);
+        });
         break;
       case 'POST':
-        router.post(url, handler);
+        router.post(url, (req, res) => {
+          handler(req, res);
+        });
         break;
       case 'PUT':
-        router.put(url, handler);
+        router.put(url, (req, res) => {
+          handler(req, res);
+        });
         break;
       case 'DELETE':
-        router.delete(url, handler);
+        router.delete(url, (req, res) => {
+          handler(req, res);
+        });
         break;
       default:
         throw new Error(
@@ -478,26 +487,37 @@ function createHandler<TResponse, TInput>({
   responseHeaders?: Record<string, string>;
   delay?: number;
 }) {
-  return (req: TInput, res: Response) => {
-    if (typeof response === 'function') {
-      ((response as unknown) as ResponseFunction<TResponse, TInput>)(req).then(
-        result => {
-          res
-            .set(result.responseHeaders)
-            .status(result.responseCode || 200)
-            .json(result.response);
-        },
-      );
+  return async (req: TInput, res: Response) => {
+    const actualResponse =
+      typeof response === 'function'
+        ? await ((response as unknown) as ResponseFunction<TResponse, TInput>)(
+            req,
+          )
+        : response;
 
-      return;
+    let responseCollection = {
+      response: actualResponse,
+      delay,
+      responseHeaders,
+      responseCode,
+    };
+    if (
+      typeof actualResponse === 'object' &&
+      (actualResponse as Override<TResponse>).__override &&
+      Object.keys(actualResponse).length === 1
+    ) {
+      responseCollection = {
+        ...responseCollection,
+        ...(actualResponse as Override<TResponse>).__override,
+      };
     }
 
-    addDelay(delay).then(() => {
-      res
-        .set(responseHeaders)
-        .status(responseCode)
-        .json(response);
-    });
+    await addDelay(responseCollection.delay);
+
+    res
+      .set(responseCollection.responseHeaders)
+      .status(responseCollection.responseCode)
+      .json(responseCollection.response);
   };
 }
 
