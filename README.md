@@ -13,7 +13,11 @@ This package was originally a port of https://github.com/ovotech/data-mocks that
     - [options](#options)
 - [Types](#types)
   - [Mock](#mock)
-  - [ResponseFunction](#responsefunction)
+  - [HttpMock](#httpmock)
+  - [HttpResponseFunction](#httpresponsefunction)
+  - [GraphqlMock](#graphqlmock)
+    - [Operation](#operation)
+  - [GraphqlResponseFunction](#graphqlresponsefunction)
 
 ## Installation
 
@@ -66,16 +70,20 @@ See [Mock](#mock) for more details.
 
 > `{ [scenarioName]: Array<Mock | { group, mocks }> }`
 
+<!-- https://www.tablesgenerator.com/markdown_tables -->
+
 | Property     | Type          | Default    | Description                                                                            |
 |--------------|---------------|------------|----------------------------------------------------------------------------------------|
 | scenarioName | `string`      | _required_ | Name of scenario.                                                                      |
-| Mock         | `object`      | _required_ | See [Mock](#mock) for more details.                                                    |
+| Mock         | `Mock`        | _required_ | See [Mock](#mock) for more details.                                                    |
 | group        | `string`      | _required_ | Used to group scenarios together so that only one scenario in a group can be selected. |
-| mocks        | `Array<Mock>` | _required_ | See [Mock](#mock) for more details.                                                    |
+| mocks        | `Array<Mock>` | _required_ | See [Mock](#mock) for more details.                                                    |             |
 
 #### options
 
 > `{ port, uiPath, modifyScenariosPath, resetScenariosPath }` | defaults to `{}`
+
+<!-- https://www.tablesgenerator.com/markdown_tables -->
 
 | Property            | Type     | Default             | Description                                                                      |
 |---------------------|----------|---------------------|----------------------------------------------------------------------------------|
@@ -88,20 +96,28 @@ See [Mock](#mock) for more details.
 
 ### Mock
 
+> `HttpMock | GraphqlMock`
+
+### HttpMock
+
 > `{ url, method, response, responseCode, responseHeaders, delay }`
 
-| Property        | Type                                     | Default     | Description                                                                                                                |
-|-----------------|------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------|
-| url             | `string` / `RegExp`                      | _required_  | Path of endpoint.                                                                                                          |
-| method          | `GET` / `POST` / `PUT` / `DELETE`        | _required_  | HTTP method of endpoint.                                                                                                   |
-| response        | `string` / `object` / `ResponseFunction` | _required_  | `string` and `object` will be json responses for the endpoint. See [ResponseFunction](#responsefunction) for more details. |
-| responseCode    | `number`                                 | `200`       | HTTP status code for response. Unused when `response` is a `ResponseFunction`.                                             |
-| responseHeaders | `object` / `undefined`                   | `undefined` | Key/value pairs of HTTP headers for response. Unused when `response` is a `ResponseFunction`.                              |
-| delay           | `number`                                 | `0`         | Number of milliseconds before the response is returned. Unused when `response` is a `ResponseFunction`.                    |
+<!-- https://www.tablesgenerator.com/markdown_tables -->
 
-### ResponseFunction
+| Property        | Type                                         | Default     | Description                                                                                                                        |
+|-----------------|----------------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------|
+| url             | `string` / `RegExp`                          | _required_  | Path of endpoint.                                                                                                                  |
+| method          | `GET` / `POST` / `PUT` / `DELETE`            | _required_  | HTTP method of endpoint.                                                                                                           |
+| response        | `string` / `object` / `HttpResponseFunction` | _required_  | `string` and `object` will be json responses for the endpoint. See [HttpResponseFunction](#httpresponsefunction) for more details. |
+| responseCode    | `number`                                     | `200`       | HTTP status code for response. Unused when `response` is a `ResponseFunction`.                                                     |
+| responseHeaders | `object` / `undefined`                       | `undefined` | Key/value pairs of HTTP headers for response. Unused when `response` is a `ResponseFunction`.                                      |
+| delay           | `number`                                     | `0`         | Number of milliseconds before the response is returned. Unused when `response` is a `ResponseFunction`.                            |
+
+### HttpResponseFunction
 
 > `function({ query, body, params }): Promise<{ response, responseCode, responseHeaders }>`
+
+<!-- https://www.tablesgenerator.com/markdown_tables -->
 
 | Property        | Type                   | Default     | Description                                   |
 |-----------------|------------------------|-------------|-----------------------------------------------|
@@ -111,3 +127,45 @@ See [Mock](#mock) for more details.
 | response        | `string` / `object`    | _required_  | JSON response.                                |
 | responseCode    | `number`               | `200`       | HTTP status code for response.                |
 | responseHeaders | `object` / `undefined` | `undefined` | Key/value pairs of HTTP headers for response. |
+
+### GraphqlMock
+
+> `{ url, method, operations }`
+
+<!-- https://www.tablesgenerator.com/markdown_tables -->
+
+| Property   | Type               | Default    | Description                                                                            |
+|------------|--------------------|------------|----------------------------------------------------------------------------------------|
+| url        | `string`           | _required_ | Path of endpoint.                                                                      |
+| method     | `GRAPHQL`          | _required_ | Indentifies this mock as a GraphqlMock.                                                |
+| operations | `Array<Operation>` | _required_ | List of operations for graphql endpoint. See [Operation](#operation) for more details. |
+
+#### Operation
+
+> `{ type, operationName, response, responseCode, responseHeaders, delay }`
+
+<!-- https://www.tablesgenerator.com/markdown_tables -->
+
+| Property        | Type                                                           | Default     | Description                                                                                             |
+|-----------------|----------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------|
+| type            | `query` / `mutation`                                           | _required_  | Tyoe of operation.                                                                                      |
+| operationName   | `string`                                                       | _required_  | Name of operation.                                                                                      |
+| response        | `{ data: object, errors?: array }` / `GraphqlResponseFunction` | _required_  | See [GraphqlResponseFunction](#grapqlresponsefunction) for more details.                                |
+| responseCode    | `number`                                                       | `200`       | HTTP status code for response. Unused when `response` is a `ResponseFunction`.                          |
+| responseHeaders | `object` / `undefined`                                         | `undefined` | Key/value pairs of HTTP headers for response. Unused when `response` is a `ResponseFunction`.           |
+| delay           | `number`                                                       | `0`         | Number of milliseconds before the response is returned. Unused when `response` is a `ResponseFunction`. |
+
+### GraphqlResponseFunction
+
+> `function({ operationName, query, variables }): Promise<{ response, responseCode, responseHeaders }>`
+
+<!-- https://www.tablesgenerator.com/markdown_tables -->
+
+| Property        | Type                                          | Default     | Description                                                                                                                                 |
+|-----------------|-----------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| operationName   | `string`                                      | ''          | operationName sent by client.                                                                                                               |
+| query           | `string`                                      | ''          | GraphQL query                                                                                                                               |
+| variables       | `null` / `object`                             | null        | variables sent by client.                                                                                                                   |
+| response        | `{ data: object, errors?: array }` / `object` | _required_  | Standard GraphQL JSON response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. |
+| responseCode    | `number`                                      | `200`       | HTTP status code for response.                                                                                                              |
+| responseHeaders | `object` / `undefined`                        | `undefined` | Key/value pairs of HTTP headers for response.                                                                                               |

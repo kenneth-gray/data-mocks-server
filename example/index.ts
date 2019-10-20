@@ -31,6 +31,51 @@ run({
         };
       },
     },
+    {
+      url: '/api/graphql',
+      method: 'GRAPHQL',
+      operations: [
+        {
+          type: 'query',
+          operationName: 'Cheese',
+          response: {
+            data: {
+              name: 'Cheddar',
+            },
+          },
+        },
+        {
+          type: 'query',
+          operationName: 'Bread',
+          response: {
+            data: {
+              name: 'Bread Roll',
+            },
+          },
+        },
+      ],
+    },
+    {
+      url: '/api/graphql-function',
+      method: 'GRAPHQL',
+      operations: [
+        {
+          type: 'query',
+          operationName: 'Function',
+          response: async ({ operationName, query, variables }) => {
+            return {
+              response: {
+                data: {
+                  operationName,
+                  query,
+                  variables,
+                },
+              },
+            };
+          },
+        },
+      ],
+    },
   ],
   scenarios: {
     blueCheese: {
@@ -41,6 +86,21 @@ run({
           method: 'GET',
           response: { blue: 'cheese' },
         },
+        {
+          url: '/api/graphql',
+          method: 'GRAPHQL',
+          operations: [
+            {
+              type: 'query',
+              operationName: 'Cheese',
+              response: {
+                data: {
+                  name: 'Blue Cheese',
+                },
+              },
+            },
+          ],
+        },
       ],
     },
     redCheese: {
@@ -50,6 +110,21 @@ run({
           url: '/api/test-me',
           method: 'GET',
           response: { red: 'leicester' },
+        },
+        {
+          url: '/api/graphql',
+          method: 'GRAPHQL',
+          operations: [
+            {
+              type: 'query',
+              operationName: 'Cheese',
+              response: {
+                data: {
+                  name: 'Red Leicester',
+                },
+              },
+            },
+          ],
         },
       ],
     },
@@ -68,7 +143,7 @@ run({
         response: { blue: 'tang' },
       },
     ],
-    bear: [],
+    water: [],
   },
   options: {
     port: 5000,
