@@ -83,11 +83,7 @@ export function run({
       return result;
     }, []);
     updatedScenarios = updatedScenarios.concat(
-      scenariosBody == null
-        ? []
-        : typeof scenariosBody === 'string'
-        ? [scenariosBody]
-        : scenariosBody,
+      scenariosBody == null ? [] : scenariosBody,
     );
     updatedScenarios = updatedScenarios.filter(scenarioName =>
       scenarioNames.includes(scenarioName),
