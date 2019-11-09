@@ -89,6 +89,9 @@ export function run({
         ? [scenariosBody]
         : scenariosBody,
     );
+    updatedScenarios = updatedScenarios.filter(scenarioName =>
+      scenarioNames.includes(scenarioName),
+    );
 
     updateScenarios(updatedScenarios);
 
@@ -182,12 +185,6 @@ function reduceAllMocksForScenarios({
   }>(
     (result, selectedScenario) => {
       const mocks = scenarioMocks[selectedScenario];
-
-      // TODO: This should not happen. You can't pick invalid scenarios when using
-      // `modify-scenarios`, but it is possible to hack the UI
-      if (!mocks) {
-        return result;
-      }
 
       if (Array.isArray(mocks)) {
         result.reducedMocks = result.reducedMocks.concat(mocks);
