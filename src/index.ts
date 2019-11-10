@@ -1,3 +1,4 @@
+import { NextFunction } from 'connect';
 import express, { Router, Request, Response } from 'express';
 import gql from 'graphql-tag';
 import nunjucks from 'nunjucks';
@@ -5,18 +6,17 @@ import path from 'path';
 import { transform } from 'server-with-kill';
 
 import {
-  GraphqlMock,
-  Groups,
   Mock,
   Options,
   ResponseFunction,
   Scenarios,
   MockResponse,
   Override,
+  Operation,
 } from './types';
-import { NextFunction } from 'connect';
 
 export * from './types';
+export { run };
 
 type Input = {
   default: Mock[];
@@ -24,7 +24,7 @@ type Input = {
   options?: Options;
 };
 
-export function run({
+function run({
   default: defaultMocks,
   scenarios: scenarioMocks = {},
   options = {},
@@ -158,8 +158,8 @@ export function run({
   }
 }
 
-function addDelay(delay: number) {
-  return new Promise(res => setTimeout(res, delay));
+function addDelay(responseDelay: number) {
+  return new Promise(res => setTimeout(res, responseDelay));
 }
 
 function reduceAllMocksForScenarios({
@@ -204,7 +204,7 @@ function reduceAllMocksForScenarios({
     { groups: {}, reducedMocks: [] },
   );
 
-  const defaultMocksFilteredGraphql = defaultMocks.reduce<Mock[]>(
+  const defaultMocksFilteredGraphQl = defaultMocks.reduce<Mock[]>(
     (result, defaultMock) => {
       if (defaultMock.method !== 'GRAPHQL') {
         result.push(defaultMock);
@@ -212,18 +212,17 @@ function reduceAllMocksForScenarios({
         return result;
       }
 
-      const filteredGraphqlMock = {
+      const filteredGraphQlMock = {
         ...defaultMock,
         operations: defaultMock.operations.filter(
-          ({ operationName: defaultMockOperationName }) => {
+          ({ name: defaultMockOperationName }) => {
             if (
               reducedMocks.some(
                 mock =>
                   mock.method === 'GRAPHQL' &&
                   mock.url === defaultMock.url &&
                   mock.operations.some(
-                    ({ operationName }) =>
-                      operationName === defaultMockOperationName,
+                    ({ name }) => name === defaultMockOperationName,
                   ),
               )
             ) {
@@ -236,16 +235,16 @@ function reduceAllMocksForScenarios({
         ),
       };
 
-      result.push(filteredGraphqlMock);
+      result.push(filteredGraphQlMock);
 
       return result;
     },
     [],
   );
 
-  return defaultMocksFilteredGraphql
+  return defaultMocksFilteredGraphQl
     .filter(defaultMock => {
-      // Multiple graphql urls are allowed and the graphql operations have veen filtered out above
+      // Multiple graphQl urls are allowed and the graphQl operations have veen filtered out above
       if (defaultMock.method === 'GRAPHQL') {
         return true;
       }
@@ -275,8 +274,8 @@ function createRouter({
   const grapqhlUrlToHandlers: Record<
     string,
     {
-      queries: GraphqlHandler[];
-      mutations: GraphqlHandler[];
+      queries: GraphQlHandler[];
+      mutations: GraphQlHandler[];
     }
   > = {};
   const mocks = reduceAllMocksForScenarios({
@@ -288,11 +287,11 @@ function createRouter({
   mocks.forEach(mock => {
     if (mock.method === 'GRAPHQL') {
       const { queries, mutations } = mock.operations.reduce<{
-        queries: GraphqlHandler[];
-        mutations: GraphqlHandler[];
+        queries: GraphQlHandler[];
+        mutations: GraphQlHandler[];
       }>(
         (result, operation) => {
-          const handler = createGraphqlHandler(operation);
+          const handler = createGraphQlHandler(operation);
 
           if (operation.type === 'mutation') {
             result.mutations.push(handler);
@@ -353,13 +352,22 @@ function createRouter({
 
   Object.entries(grapqhlUrlToHandlers).forEach(
     ([url, { queries, mutations }]) => {
-      router.get(url, createGraphqlRequestHandler(queries));
-      router.post(url, createGraphqlRequestHandler(queries.concat(mutations)));
+      router.get(url, createGraphQlRequestHandler(queries));
+      router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
     },
   );
 
   return router;
 }
+
+type Groups = Array<{
+  name: string;
+  noneChecked: boolean;
+  scenarios: Array<{
+    name: string;
+    checked: boolean;
+  }>;
+}>;
 
 function getPageVariables(
   scenarioMocks: Scenarios,
@@ -424,11 +432,11 @@ function getPageVariables(
   };
 }
 
-type GraphqlHandler = (
+type GraphQlHandler = (
   req: {
     body: Request['body'] & {
       operationName: string;
-      variables: any;
+      variables: Record<string, any>;
       query: string;
     };
     params: Request['params'];
@@ -437,19 +445,13 @@ type GraphqlHandler = (
   res: Response,
 ) => boolean;
 
-function createGraphqlHandler({
-  operationName: operationNameToCheck,
+function createGraphQlHandler({
+  name: operationNameToCheck,
   ...rest
-}: {
-  operationName: string;
-  response: GraphqlMock['operations'][0]['response'];
-  responseCode?: number;
-  responseHeaders?: Record<string, string>;
-  delay?: number;
-}) {
+}: Operation) {
   const handler = createHandler(rest);
 
-  const graphqlHandler: GraphqlHandler = (req, res) => {
+  const graphQlHandler: GraphQlHandler = (req, res) => {
     if (operationNameToCheck === req.body.operationName) {
       handler(
         {
@@ -466,31 +468,31 @@ function createGraphqlHandler({
     return false;
   };
 
-  return graphqlHandler;
+  return graphQlHandler;
 }
 
-function createHandler<TResponse, TInput>({
+function createHandler<TInput, TResponse>({
   response,
   responseCode = 200,
   responseHeaders,
-  delay = 0,
+  responseDelay = 0,
 }: {
-  response: MockResponse<TResponse, TInput>;
+  response: MockResponse<TInput, TResponse>;
   responseCode?: number;
   responseHeaders?: Record<string, string>;
-  delay?: number;
+  responseDelay?: number;
 }) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
       typeof response === 'function'
-        ? await ((response as unknown) as ResponseFunction<TResponse, TInput>)(
+        ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)(
             req,
           )
         : response;
 
     let responseCollection = {
       response: actualResponse,
-      delay,
+      responseDelay,
       responseHeaders,
       responseCode,
     };
@@ -505,7 +507,7 @@ function createHandler<TResponse, TInput>({
       };
     }
 
-    await addDelay(responseCollection.delay);
+    await addDelay(responseCollection.responseDelay);
 
     res
       .set(responseCollection.responseHeaders)
@@ -514,7 +516,7 @@ function createHandler<TResponse, TInput>({
   };
 }
 
-function createGraphqlRequestHandler(handlers: GraphqlHandler[]) {
+function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const query = req.body.query || req.query.query || '';
 
@@ -526,7 +528,7 @@ function createGraphqlRequestHandler(handlers: GraphqlHandler[]) {
         } catch (error) {}
       }
     }
-    variables = variables || null;
+    variables = variables || {};
 
     let operationName = req.body.operationName || req.query.operationName || '';
     if (!operationName && query) {

@@ -89,6 +89,34 @@ describe('run', () => {
       });
     });
 
+    it('delayed responses work', done => {
+      const responseDelay = 500;
+      const server = run({
+        default: [
+          {
+            url: '/test-me',
+            method: 'GET',
+            responseDelay,
+            response: {},
+          },
+        ],
+      });
+
+      server.on('listening', async () => {
+        const startTime = getStartTime();
+
+        await rp.get('http://localhost:3000/test-me', {
+          json: true,
+        });
+
+        const duration = getDuration(startTime);
+
+        safeExpect(server, duration).toBeGreaterThanOrEqual(responseDelay);
+
+        server.kill(done);
+      });
+    });
+
     it('can use functions for responses', done => {
       const server = run({
         default: [
@@ -424,5 +452,22 @@ function safeExpect(server: ServerWithKill, value: any) {
         throw error;
       }
     },
+    toBeGreaterThanOrEqual(greatherThanOrEqualValue: any) {
+      try {
+        expect(value).toBeGreaterThanOrEqual(greatherThanOrEqualValue);
+      } catch (error) {
+        server.kill();
+        throw error;
+      }
+    },
   };
+}
+
+function getStartTime() {
+  return process.hrtime();
+}
+
+function getDuration(startTime: [number, number]) {
+  const hrend = process.hrtime(startTime);
+  return hrend[0] * 1000 + hrend[1] / 1000000;
 }
