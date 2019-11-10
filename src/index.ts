@@ -522,7 +522,7 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     const query =
       req.headers['content-type'] === 'application/graphql'
         ? req.body
-        : req.body.query || req.query.query || req.body || '';
+        : req.body.query || req.query.query || '';
 
     let variables = req.body.variables;
     if (variables === undefined) {
