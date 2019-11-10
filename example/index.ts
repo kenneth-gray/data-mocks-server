@@ -33,7 +33,7 @@ run({
       operations: [
         {
           type: 'query',
-          operationName: 'Cheese',
+          name: 'Cheese',
           response: {
             data: {
               name: 'Cheddar',
@@ -42,7 +42,7 @@ run({
         },
         {
           type: 'query',
-          operationName: 'Bread',
+          name: 'Bread',
           response: {
             data: {
               name: 'Bread Roll',
@@ -57,7 +57,7 @@ run({
       operations: [
         {
           type: 'query',
-          operationName: 'Function',
+          name: 'Function',
           response: async ({ operationName, query, variables }) => {
             return {
               data: {
@@ -86,7 +86,7 @@ run({
           operations: [
             {
               type: 'query',
-              operationName: 'Cheese',
+              name: 'Cheese',
               response: {
                 data: {
                   name: 'Blue Cheese',
@@ -111,7 +111,7 @@ run({
           operations: [
             {
               type: 'query',
-              operationName: 'Cheese',
+              name: 'Cheese',
               response: {
                 data: {
                   name: 'Red Leicester',

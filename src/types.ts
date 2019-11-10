@@ -14,55 +14,62 @@ export type Override<TResponse> = {
     response: TResponse;
     responseCode?: number;
     responseHeaders?: Record<string, string>;
-    delay?: number;
+    responseDelay?: number;
   };
 };
 
-export type ResponseFunction<TResponse, TInput> = (
+export type ResponseFunction<TInput, TResponse> = (
   input: TInput,
 ) => TResponse | Override<TResponse> | Promise<TResponse | Override<TResponse>>;
 
-export type MockResponse<TResponse, TInput> =
+export type MockResponse<TInput, TResponse> =
   | TResponse
-  | ResponseFunction<TResponse, TInput>;
+  | ResponseFunction<TInput, TResponse>;
 
 export type HttpMock = {
   url: string | RegExp;
   method: HttpMethod;
   response: MockResponse<
-    Record<string, any> | string,
     {
       query: Record<string, string | Array<string>>;
       body: Record<string, any>;
       params: Record<string, string>;
-    }
+    },
+    Record<string, any> | string
   >;
   responseCode?: number;
   responseHeaders?: Record<string, string>;
-  delay?: number;
+  responseDelay?: number;
 };
 
-export type GraphqlMock = {
+export type GraphQlResponse = {
+  data?: null | Record<string, any>;
+  errors?: Array<any>;
+};
+
+export type Operation = {
+  type: 'query' | 'mutation';
+  name: string;
+  response: MockResponse<
+    {
+      operationName: string;
+      query: string;
+      variables: Record<string, any>;
+    },
+    GraphQlResponse | Record<string, any>
+  >;
+  responseCode?: number;
+  responseHeaders?: Record<string, string>;
+  responseDelay?: number;
+};
+
+export type GraphQlMock = {
   url: string;
   method: 'GRAPHQL';
-  operations: Array<{
-    type: 'query' | 'mutation';
-    operationName: string;
-    response: MockResponse<
-      { data?: Record<string, any>; errors?: Array<any> } | Record<string, any>,
-      {
-        operationName: string;
-        query: string;
-        variables: null | Record<string, any>;
-      }
-    >;
-    responseCode?: number;
-    responseHeaders?: Record<string, string>;
-    delay?: number;
-  }>;
+  operations: Array<Operation>;
 };
 
-export type Mock = HttpMock | GraphqlMock;
+export type Mock = HttpMock | GraphQlMock;
 
 export type Options = {
   port?: number;
@@ -70,12 +77,3 @@ export type Options = {
   modifyScenariosPath?: string;
   resetScenariosPath?: string;
 };
-
-export type Groups = Array<{
-  name: string;
-  noneChecked: boolean;
-  scenarios: Array<{
-    name: string;
-    checked: boolean;
-  }>;
-}>;
