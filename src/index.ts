@@ -271,7 +271,7 @@ function createRouter({
 }: CreateRouterInput) {
   const router = Router();
 
-  const grapqhlUrlToHandlers: Record<
+  const graphQlUrlToHandlers: Record<
     string,
     {
       queries: GraphQlHandler[];
@@ -304,14 +304,14 @@ function createRouter({
         { queries: [], mutations: [] },
       );
 
-      if (!grapqhlUrlToHandlers[mock.url]) {
-        grapqhlUrlToHandlers[mock.url] = { queries: [], mutations: [] };
+      if (!graphQlUrlToHandlers[mock.url]) {
+        graphQlUrlToHandlers[mock.url] = { queries: [], mutations: [] };
       }
 
-      grapqhlUrlToHandlers[mock.url].queries = grapqhlUrlToHandlers[
+      graphQlUrlToHandlers[mock.url].queries = graphQlUrlToHandlers[
         mock.url
       ].queries.concat(queries);
-      grapqhlUrlToHandlers[mock.url].mutations = grapqhlUrlToHandlers[
+      graphQlUrlToHandlers[mock.url].mutations = graphQlUrlToHandlers[
         mock.url
       ].mutations.concat(mutations);
 
@@ -350,7 +350,7 @@ function createRouter({
     }
   });
 
-  Object.entries(grapqhlUrlToHandlers).forEach(
+  Object.entries(graphQlUrlToHandlers).forEach(
     ([url, { queries, mutations }]) => {
       router.get(url, createGraphQlRequestHandler(queries));
       router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
