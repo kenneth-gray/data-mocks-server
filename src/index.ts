@@ -61,6 +61,7 @@ function run({
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
+  app.use(express.text({ type: 'application/graphql' }));
 
   app.get(uiPath, (_, res) => {
     const { groups, other } = getPageVariables(
@@ -518,7 +519,10 @@ function createHandler<TInput, TResponse>({
 
 function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const query = req.body.query || req.query.query || '';
+    const query =
+      req.headers['content-type'] === 'application/graphql'
+        ? req.body
+        : req.body.query || req.query.query || req.body || '';
 
     let variables = req.body.variables;
     if (variables === undefined) {
