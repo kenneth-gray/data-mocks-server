@@ -524,20 +524,28 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
         ? req.body
         : req.body.query || req.query.query || '';
 
+    let graphqlAst;
+    try {
+      graphqlAst = gql(query);
+    } catch (error) {
+      res.status(400).json({
+        message: `query '${query}' is not a valid GraphQL query`,
+      });
+      return;
+    }
+
     let variables = req.body.variables;
-    if (variables === undefined) {
-      if (req.query.variables) {
-        try {
-          variables = JSON.parse(req.query.variables);
-        } catch (error) {}
-      }
+    if (variables === undefined && req.query.variables) {
+      try {
+        variables = JSON.parse(req.query.variables);
+      } catch (error) {}
     }
     variables = variables || {};
 
     let operationName = req.body.operationName || req.query.operationName || '';
     if (!operationName && query) {
       try {
-        operationName = gql(query).definitions[0].name.value;
+        operationName = graphqlAst.definitions[0].name.value;
       } catch (error) {}
     }
 
