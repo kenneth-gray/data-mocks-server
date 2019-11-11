@@ -5,10 +5,10 @@ import { run } from './index';
 
 describe('run', () => {
   describe('port', () => {
-    it('defaults to 3000', done => {
+    it('defaults to 3000', () => {
       const server = run({ default: [] });
 
-      serverTest(server, done, () => {
+      return serverTest(server, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
@@ -17,11 +17,11 @@ describe('run', () => {
       });
     });
 
-    it('can be set using options', done => {
+    it('can be set using options', () => {
       const expectedPort = 5000;
       const server = run({ default: [], options: { port: expectedPort } });
 
-      serverTest(server, done, () => {
+      return serverTest(server, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
@@ -32,7 +32,7 @@ describe('run', () => {
   });
 
   describe('default mocks', () => {
-    it('respond as expected', done => {
+    it('respond as expected', () => {
       const expectedGetResponse = { get: 'food' };
       const expectedPostResponse = { post: 'mail' };
       const expectedPutResponse = { put: 'it down' };
@@ -63,7 +63,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const [
           getResponse,
           postResponse,
@@ -83,7 +83,7 @@ describe('run', () => {
       });
     });
 
-    it('delayed responses work', done => {
+    it('delayed responses work', () => {
       const responseDelay = 500;
       const server = run({
         default: [
@@ -96,7 +96,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const startTime = getStartTime();
 
         await rp.get('http://localhost:3000/test-me', {
@@ -109,7 +109,7 @@ describe('run', () => {
       });
     });
 
-    it('can use functions for responses', done => {
+    it('can use functions for responses', () => {
       const server = run({
         default: [
           {
@@ -124,7 +124,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -143,7 +143,7 @@ describe('run', () => {
       });
     });
 
-    it('can use async functions for responses', done => {
+    it('can use async functions for responses', () => {
       const server = run({
         default: [
           {
@@ -158,7 +158,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -177,7 +177,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL query over GET', done => {
+    it('supports GraphQL query over GET', () => {
       const expectedResponse = {
         data: {
           firstName: 'Alan',
@@ -199,7 +199,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const query = `
           query Person {
             firstName
@@ -216,7 +216,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL over GET when operationName is a query param instead of included in GraphQL query', done => {
+    it('supports GraphQL over GET when operationName is a query param instead of included in GraphQL query', () => {
       const operationName = 'Person';
       const expectedResponse = {
         data: {
@@ -239,7 +239,7 @@ describe('run', () => {
         ],
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const query = `
           {
             firstName
@@ -258,14 +258,15 @@ describe('run', () => {
   });
 
   describe('scenarios', () => {
-    it('override default urls', done => {
+    it('override default urls', () => {
+      const expectedInitialResponse = {};
       const expectedResponse = { something: 'new' };
       const server = run({
         default: [
           {
             url: '/test-me',
             method: 'GET',
-            response: {},
+            response: expectedInitialResponse,
           },
         ],
         scenarios: {
@@ -279,7 +280,12 @@ describe('run', () => {
         },
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
+        const initialResponse = await rp.get('http://localhost:3000/test-me', {
+          json: true,
+        });
+        expect(initialResponse).toEqual(expectedInitialResponse);
+
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test'] },
           json: true,
@@ -288,12 +294,11 @@ describe('run', () => {
         const response = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
-
         expect(response).toEqual(expectedResponse);
       });
     });
 
-    it('multiple scenarios can be enabled', done => {
+    it('multiple scenarios can be enabled', () => {
       const expectedResponse1 = { something: 'new' };
       const expectedResponse2 = { something: 'else' };
       const server = run({
@@ -327,7 +332,7 @@ describe('run', () => {
         },
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test', 'test2'] },
           json: true,
@@ -347,7 +352,7 @@ describe('run', () => {
       });
     });
 
-    it('errors when attempting to enable 2 scenarios that are in the same group', done => {
+    it('errors when attempting to enable 2 scenarios that are in the same group', () => {
       const server = run({
         default: [
           {
@@ -380,7 +385,7 @@ describe('run', () => {
         },
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         expect.assertions(1);
         try {
           await rp.put('http://localhost:3000/modify-scenarios', {
@@ -393,7 +398,7 @@ describe('run', () => {
       });
     });
 
-    it('can be reset', done => {
+    it('can be reset', () => {
       const initialResponse = { something: 'old' };
       const scenarioResponse = { something: 'new' };
       const server = run({
@@ -415,7 +420,7 @@ describe('run', () => {
         },
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
@@ -443,7 +448,7 @@ describe('run', () => {
       });
     });
 
-    it('reset-scenarios and modify-scenarios paths can be changed', done => {
+    it('reset-scenarios and modify-scenarios paths can be changed', () => {
       const initialResponse = { something: 'old' };
       const scenarioResponse = { something: 'new' };
       const server = run({
@@ -469,7 +474,7 @@ describe('run', () => {
         },
       });
 
-      serverTest(server, done, async () => {
+      return serverTest(server, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
@@ -508,18 +513,19 @@ function getDuration(startTime: [number, number]) {
   return hrend[0] * 1000 + hrend[1] / 1000000;
 }
 
-function serverTest(
-  server: ServerWithKill,
-  done: jest.DoneCallback,
-  fn: Function,
-) {
-  server.on('listening', async () => {
-    try {
-      await fn();
-      server.kill(done);
-    } catch (error) {
-      server.kill();
-      throw error;
-    }
+function serverTest(server: ServerWithKill, fn: Function) {
+  return new Promise((resolve, reject) => {
+    server.on('listening', async () => {
+      try {
+        await fn();
+        server.kill(() => {
+          resolve();
+        });
+      } catch (error) {
+        server.kill(() => {
+          reject(error);
+        });
+      }
+    });
   });
 }
