@@ -216,7 +216,53 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL over GET when operationName is a query param instead of included in GraphQL query', () => {
+    it('supports GraphQL variables over GET', () => {
+      const getVariables = { a: 1, b: 2 };
+      const expectedResponse = {
+        data: {
+          variables: getVariables,
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Person',
+                response: ({ variables }) => ({
+                  data: {
+                    variables,
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const query = `
+          query Person {
+            firstName
+          }
+        `;
+        const response = await rp.get(
+          `http://localhost:3000/api/graphql?query=${query}&variables=${JSON.stringify(
+            getVariables,
+          )}`,
+          {
+            json: true,
+          },
+        );
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('supports GraphQL over GET when operationName is provided', () => {
       const operationName = 'Person';
       const expectedResponse = {
         data: {
@@ -251,6 +297,130 @@ describe('run', () => {
             json: true,
           },
         );
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('supports GraphQL query over POST', () => {
+      const expectedResponse = {
+        data: {
+          firstName: 'Alan',
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Person',
+                response: expectedResponse,
+              },
+            ],
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const query = `
+          query Person {
+            firstName
+          }
+        `;
+        const response = await rp.post('http://localhost:3000/api/graphql', {
+          json: true,
+          body: {
+            query,
+          },
+        });
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('supports GraphQL variables over POST', () => {
+      const postVariables = { a: 1, b: 2 };
+      const expectedResponse = {
+        data: {
+          variables: postVariables,
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Person',
+                response: ({ variables }) => ({
+                  data: {
+                    variables,
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const query = `
+          query Person {
+            firstName
+          }
+        `;
+        const response = await rp.post('http://localhost:3000/api/graphql', {
+          json: true,
+          body: {
+            query,
+            variables: postVariables,
+          },
+        });
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('supports GraphQL query over POST when operationName is provided', () => {
+      const expectedResponse = {
+        data: {
+          firstName: 'Alan',
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Person',
+                response: expectedResponse,
+              },
+            ],
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const query = `
+          {
+            firstName
+          }
+        `;
+        const response = await rp.post('http://localhost:3000/api/graphql', {
+          json: true,
+          body: {
+            query,
+            operationName: 'Person',
+          },
+        });
 
         expect(response).toEqual(expectedResponse);
       });
