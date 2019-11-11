@@ -9,6 +9,7 @@ import {
   Mock,
   Options,
   ResponseFunction,
+  ResponseProps,
   Scenarios,
   MockResponse,
   Override,
@@ -477,12 +478,7 @@ function createHandler<TInput, TResponse>({
   responseCode = 200,
   responseHeaders,
   responseDelay = 0,
-}: {
-  response: MockResponse<TInput, TResponse>;
-  responseCode?: number;
-  responseHeaders?: Record<string, string>;
-  responseDelay?: number;
-}) {
+}: ResponseProps<MockResponse<TInput, TResponse>>) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
       typeof response === 'function'
@@ -491,13 +487,18 @@ function createHandler<TInput, TResponse>({
           )
         : response;
 
-    let responseCollection = {
-      response: actualResponse,
+    let responseCollection: {
+      response?: any;
+      responseDelay: number;
+      responseHeaders?: Record<string, string>;
+      responseCode: number;
+    } = {
       responseDelay,
       responseHeaders,
       responseCode,
     };
     if (
+      actualResponse !== null &&
       typeof actualResponse === 'object' &&
       (actualResponse as Override<TResponse>).__override &&
       Object.keys(actualResponse).length === 1
@@ -506,14 +507,34 @@ function createHandler<TInput, TResponse>({
         ...responseCollection,
         ...(actualResponse as Override<TResponse>).__override,
       };
+    } else {
+      responseCollection.response = actualResponse;
     }
 
     await addDelay(responseCollection.responseDelay);
 
+    if (
+      responseCollection.response !== undefined &&
+      (!responseCollection.responseHeaders ||
+        !responseCollection.responseHeaders['Content-Type'])
+    ) {
+      responseCollection.responseHeaders = {
+        ...responseCollection.responseHeaders,
+        'Content-Type': 'application/json',
+      };
+    }
+
+    if (
+      responseCollection.responseHeaders &&
+      responseCollection.responseHeaders['Content-Type'] === 'application/json'
+    ) {
+      responseCollection.response = JSON.stringify(responseCollection.response);
+    }
+
     res
       .set(responseCollection.responseHeaders)
       .status(responseCollection.responseCode)
-      .json(responseCollection.response);
+      .send(responseCollection.response);
   };
 }
 

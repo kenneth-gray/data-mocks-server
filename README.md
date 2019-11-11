@@ -111,9 +111,9 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 |----------|------|---------|-------------|
 | url | `string` / `RegExp` | _required_ | Path of endpoint. Must start with `/`. |
 | method | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` | _required_ | HTTP method of endpoint. |
-| response | `string` / `object` / `HttpResponseFunction` | _required_ | JSON response for endpoint. [HttpResponseFunction](#httpresponsefunction). |
+| response | `undefined` / `null` / `string` / `object` / `HttpResponseFunction` | `undefined` | Response for endpoint. [HttpResponseFunction](#httpresponsefunction). |
 | responseCode | `number` | `200` | HTTP status code for response. |
-| responseHeaders | `object` / `undefined` | `undefined` | Key/value pairs of HTTP headers for response. |
+| responseHeaders | `object` / `undefined` | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
 | responseDelay | `number` | `0` | Number of milliseconds before the response is returned. |
 
 ### HttpResponseFunction
@@ -127,7 +127,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | query | `object` | `{}` | query object as defined by `express`. |
 | body | `object` | `{}` | body object as defined by `express`. |
 | params | `object` | `{}` | params object as defined by `express`. |
-| response | `string` / `object` / `Override` | _required_ | JSON response. [Override](#override). |
+| response | `undefined` / `null` / `string` / `object` / `Override` | _required_ | Response. [Override](#override). |
 
 ### GraphQlMock
 
@@ -151,9 +151,9 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 |----------|------|---------|-------------|
 | type | `'query'` / `'mutation'` | _required_ | Type of operation. |
 | name | `string` | _required_ | Name of operation. |
-| response | `{ data?: null / object, errors?: array }` / `object` / `GraphQlResponseFunction` | _required_ | GraphQL response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. [GraphQlResponseFunction](#graphqlresponsefunction). |
+| response | `{ data?: null / object, errors?: array }` / `object` / `string` / `null` / `undefined` / `GraphQlResponseFunction` | `undefined` | GraphQL response. `object` / `string` / `null` / `undefined` should be used when simulating non GraphQL responses. [GraphQlResponseFunction](#graphqlresponsefunction). |
 | responseCode | `number` | `200` | HTTP status code for response. |
-| responseHeaders | `object` / `undefined` | `undefined` | Key/value pairs of HTTP headers for response. |
+| responseHeaders | `object` / `undefined` | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
 | responseDelay | `number` | `0` | Number of milliseconds before the response is returned. |
 
 ### GraphQlResponseFunction
@@ -167,7 +167,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | operationName | `string` | `''` | operationName sent by client. |
 | query | `string` | `''` | GraphQL query. |
 | variables | `object` | `{}` | variables sent by client. |
-| response | `{ data: object, errors?: array }` / `object` / `Override` | _required_ | Standard GraphQL JSON response. `object` should only be used when combined with a 5XX `responseCode` to simulate an HTTP transport failure. [Override](#override). |
+| response | `{ data: object, errors?: array }` / `object` / `string` / `null` / `undefined` / `Override` | _required_ | GraphQL response. `object` / `string` / `null` / `undefined` should be used when simulating non GraphQL responses. [Override](#override). |
 
 ### Override
 

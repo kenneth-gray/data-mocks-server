@@ -10,12 +10,7 @@ export type Scenarios = {
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export type Override<TResponse> = {
-  __override: {
-    response: TResponse;
-    responseCode?: number;
-    responseHeaders?: Record<string, string>;
-    responseDelay?: number;
-  };
+  __override: ResponseProps<TResponse>;
 };
 
 export type ResponseFunction<TInput, TResponse> = (
@@ -26,21 +21,28 @@ export type MockResponse<TInput, TResponse> =
   | TResponse
   | ResponseFunction<TInput, TResponse>;
 
+export type HttpResponse = Record<string, any> | string | null;
+
+export type ResponseProps<TResponse> = {
+  response?: TResponse;
+  responseCode?: number;
+  responseHeaders?: Record<string, string>;
+  responseDelay?: number;
+};
+
 export type HttpMock = {
   url: string | RegExp;
   method: HttpMethod;
-  response: MockResponse<
+} & ResponseProps<
+  MockResponse<
     {
       query: Record<string, string | Array<string>>;
       body: Record<string, any>;
       params: Record<string, string>;
     },
-    Record<string, any> | string
-  >;
-  responseCode?: number;
-  responseHeaders?: Record<string, string>;
-  responseDelay?: number;
-};
+    HttpResponse
+  >
+>;
 
 export type GraphQlResponse = {
   data?: null | Record<string, any>;
@@ -50,18 +52,16 @@ export type GraphQlResponse = {
 export type Operation = {
   type: 'query' | 'mutation';
   name: string;
-  response: MockResponse<
+} & ResponseProps<
+  MockResponse<
     {
       operationName: string;
       query: string;
       variables: Record<string, any>;
     },
-    GraphQlResponse | Record<string, any>
-  >;
-  responseCode?: number;
-  responseHeaders?: Record<string, string>;
-  responseDelay?: number;
-};
+    GraphQlResponse | HttpResponse
+  >
+>;
 
 export type GraphQlMock = {
   url: string;

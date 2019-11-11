@@ -255,6 +255,115 @@ describe('run', () => {
         expect(response).toEqual(expectedResponse);
       });
     });
+
+    it('allows empty responses', () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/test',
+            method: 'GET',
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const response = await rp.get(`http://localhost:3000/api/test`, {
+          resolveWithFullResponse: true,
+        });
+
+        expect(response.body).toEqual('');
+        expect(response.headers['content-type']).toBeUndefined();
+      });
+    });
+
+    it('allows null responses', () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/test',
+            method: 'GET',
+            response: null,
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const response = await rp.get(`http://localhost:3000/api/test`, {
+          json: true,
+        });
+
+        expect(response).toBeNull();
+      });
+    });
+
+    it('adds application/json content-type when response is not undefined', () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/test',
+            method: 'GET',
+            response: {},
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const response = await rp.get(`http://localhost:3000/api/test`, {
+          resolveWithFullResponse: true,
+          json: true,
+        });
+
+        expect(response.headers['content-type']).toContain('application/json');
+      });
+    });
+
+    it('adds application/json content-type when response is not undefined and responseHeaders does not contain content-type', () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/test',
+            method: 'GET',
+            response: {},
+            responseHeaders: {
+              'Made-Up': 'Header',
+            },
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const response = await rp.get(`http://localhost:3000/api/test`, {
+          resolveWithFullResponse: true,
+          json: true,
+        });
+
+        expect(response.headers['made-up']).toEqual('Header');
+        expect(response.headers['content-type']).toContain('application/json');
+      });
+    });
+
+    it('does not add application/json content-type when content-type is already defined', () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/test',
+            method: 'GET',
+            response: {},
+            responseHeaders: {
+              'Content-Type': 'text/*',
+            },
+          },
+        ],
+      });
+
+      return serverTest(server, async () => {
+        const response = await rp.get(`http://localhost:3000/api/test`, {
+          resolveWithFullResponse: true,
+        });
+
+        expect(response.headers['content-type']).toContain('text/*');
+      });
+    });
   });
 
   describe('scenarios', () => {
