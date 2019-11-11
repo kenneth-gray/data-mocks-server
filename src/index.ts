@@ -529,7 +529,7 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
       graphqlAst = gql(query);
     } catch (error) {
       res.status(400).json({
-        message: `query '${query}' is not a valid GraphQL query`,
+        message: `query "${query}" is not a valid GraphQL query`,
       });
       return;
     }
