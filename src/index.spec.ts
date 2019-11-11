@@ -8,14 +8,12 @@ describe('run', () => {
     it('defaults to 3000', done => {
       const server = run({ default: [] });
 
-      server.on('listening', () => {
+      serverTest(server, done, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
 
-        safeExpect(server, port).toEqual(3000);
-
-        server.kill(done);
+        expect(port).toEqual(3000);
       });
     });
 
@@ -23,14 +21,12 @@ describe('run', () => {
       const expectedPort = 5000;
       const server = run({ default: [], options: { port: expectedPort } });
 
-      server.on('listening', () => {
+      serverTest(server, done, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
 
-        safeExpect(server, port).toEqual(expectedPort);
-
-        server.kill(done);
+        expect(port).toEqual(expectedPort);
       });
     });
   });
@@ -67,7 +63,7 @@ describe('run', () => {
         ],
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const [
           getResponse,
           postResponse,
@@ -80,12 +76,10 @@ describe('run', () => {
           rp.delete('http://localhost:3000/test-me', { json: true }),
         ]);
 
-        safeExpect(server, getResponse).toEqual(expectedGetResponse);
-        safeExpect(server, postResponse).toEqual(expectedPostResponse);
-        safeExpect(server, putResponse).toEqual(expectedPutResponse);
-        safeExpect(server, deleteResponse).toEqual(expectedDeleteResponse);
-
-        server.kill(done);
+        expect(getResponse).toEqual(expectedGetResponse);
+        expect(postResponse).toEqual(expectedPostResponse);
+        expect(putResponse).toEqual(expectedPutResponse);
+        expect(deleteResponse).toEqual(expectedDeleteResponse);
       });
     });
 
@@ -102,7 +96,7 @@ describe('run', () => {
         ],
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const startTime = getStartTime();
 
         await rp.get('http://localhost:3000/test-me', {
@@ -111,9 +105,7 @@ describe('run', () => {
 
         const duration = getDuration(startTime);
 
-        safeExpect(server, duration).toBeGreaterThanOrEqual(responseDelay);
-
-        server.kill(done);
+        expect(duration).toBeGreaterThanOrEqual(responseDelay);
       });
     });
 
@@ -132,7 +124,7 @@ describe('run', () => {
         ],
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -141,15 +133,13 @@ describe('run', () => {
           { json: true, body },
         );
 
-        safeExpect(server, response).toEqual({
+        expect(response).toEqual({
           body,
           query: {
             testQuery,
           },
           params: { id },
         });
-
-        server.kill(done);
       });
     });
 
@@ -168,7 +158,7 @@ describe('run', () => {
         ],
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -177,15 +167,92 @@ describe('run', () => {
           { json: true, body },
         );
 
-        safeExpect(server, response).toEqual({
+        expect(response).toEqual({
           body,
           query: {
             testQuery,
           },
           params: { id },
         });
+      });
+    });
 
-        server.kill(done);
+    it('supports GraphQL query over GET', done => {
+      const expectedResponse = {
+        data: {
+          firstName: 'Alan',
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Person',
+                response: expectedResponse,
+              },
+            ],
+          },
+        ],
+      });
+
+      serverTest(server, done, async () => {
+        const query = `
+          query Person {
+            firstName
+          }
+        `;
+        const response = await rp.get(
+          `http://localhost:3000/api/graphql?query=${query}`,
+          {
+            json: true,
+          },
+        );
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('supports GraphQL over GET when operationName is a query param instead of included in GraphQL query', done => {
+      const operationName = 'Person';
+      const expectedResponse = {
+        data: {
+          firstName: 'Alan',
+        },
+      };
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: operationName,
+                response: expectedResponse,
+              },
+            ],
+          },
+        ],
+      });
+
+      serverTest(server, done, async () => {
+        const query = `
+          {
+            firstName
+          }
+        `;
+        const response = await rp.get(
+          `http://localhost:3000/api/graphql?query=${query}&operationName=${operationName}`,
+          {
+            json: true,
+          },
+        );
+
+        expect(response).toEqual(expectedResponse);
       });
     });
   });
@@ -212,7 +279,7 @@ describe('run', () => {
         },
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test'] },
           json: true,
@@ -222,9 +289,7 @@ describe('run', () => {
           json: true,
         });
 
-        safeExpect(server, response).toEqual(expectedResponse);
-
-        server.kill(done);
+        expect(response).toEqual(expectedResponse);
       });
     });
 
@@ -262,7 +327,7 @@ describe('run', () => {
         },
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test', 'test2'] },
           json: true,
@@ -277,10 +342,8 @@ describe('run', () => {
           }),
         ]);
 
-        safeExpect(server, response1).toEqual(expectedResponse1);
-        safeExpect(server, response2).toEqual(expectedResponse2);
-
-        server.kill(done);
+        expect(response1).toEqual(expectedResponse1);
+        expect(response2).toEqual(expectedResponse2);
       });
     });
 
@@ -317,7 +380,7 @@ describe('run', () => {
         },
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         expect.assertions(1);
         try {
           await rp.put('http://localhost:3000/modify-scenarios', {
@@ -325,10 +388,8 @@ describe('run', () => {
             json: true,
           });
         } catch ({ statusCode }) {
-          safeExpect(server, statusCode).toEqual(400);
+          expect(statusCode).toEqual(400);
         }
-
-        server.kill(done);
       });
     });
 
@@ -354,11 +415,11 @@ describe('run', () => {
         },
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
-        safeExpect(server, firstResponse).toEqual(initialResponse);
+        expect(firstResponse).toEqual(initialResponse);
 
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test'] },
@@ -368,7 +429,7 @@ describe('run', () => {
         const secondResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
-        safeExpect(server, secondResponse).toEqual(scenarioResponse);
+        expect(secondResponse).toEqual(scenarioResponse);
 
         await rp.put('http://localhost:3000/reset-scenarios', {
           json: true,
@@ -378,9 +439,7 @@ describe('run', () => {
           json: true,
         });
 
-        safeExpect(server, thirdResponse).toEqual(initialResponse);
-
-        server.kill(done);
+        expect(thirdResponse).toEqual(initialResponse);
       });
     });
 
@@ -410,11 +469,11 @@ describe('run', () => {
         },
       });
 
-      server.on('listening', async () => {
+      serverTest(server, done, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
-        safeExpect(server, firstResponse).toEqual(initialResponse);
+        expect(firstResponse).toEqual(initialResponse);
 
         await rp.put('http://localhost:3000/modify', {
           body: { scenarios: ['test'] },
@@ -424,7 +483,7 @@ describe('run', () => {
         const secondResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
-        safeExpect(server, secondResponse).toEqual(scenarioResponse);
+        expect(secondResponse).toEqual(scenarioResponse);
 
         await rp.put('http://localhost:3000/reset', {
           json: true,
@@ -434,34 +493,11 @@ describe('run', () => {
           json: true,
         });
 
-        safeExpect(server, thirdResponse).toEqual(initialResponse);
-
-        server.kill(done);
+        expect(thirdResponse).toEqual(initialResponse);
       });
     });
   });
 });
-
-function safeExpect(server: ServerWithKill, value: any) {
-  return {
-    toEqual(equalValue: any) {
-      try {
-        expect(value).toEqual(equalValue);
-      } catch (error) {
-        server.kill();
-        throw error;
-      }
-    },
-    toBeGreaterThanOrEqual(greatherThanOrEqualValue: any) {
-      try {
-        expect(value).toBeGreaterThanOrEqual(greatherThanOrEqualValue);
-      } catch (error) {
-        server.kill();
-        throw error;
-      }
-    },
-  };
-}
 
 function getStartTime() {
   return process.hrtime();
@@ -470,4 +506,20 @@ function getStartTime() {
 function getDuration(startTime: [number, number]) {
   const hrend = process.hrtime(startTime);
   return hrend[0] * 1000 + hrend[1] / 1000000;
+}
+
+function serverTest(
+  server: ServerWithKill,
+  done: jest.DoneCallback,
+  fn: Function,
+) {
+  server.on('listening', async () => {
+    try {
+      await fn();
+      server.kill(done);
+    } catch (error) {
+      server.kill();
+      throw error;
+    }
+  });
 }
