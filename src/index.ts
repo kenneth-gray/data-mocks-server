@@ -76,31 +76,38 @@ function run({
     });
   });
 
-  app.post(uiPath, ({ body: { scenarios: scenariosBody, ...rest } }, res) => {
-    let updatedScenarios = groupNames.reduce<string[]>((result, groupName) => {
-      if (rest[groupName]) {
-        result.push(rest[groupName]);
+  app.post(
+    uiPath,
+    ({ body: { scenarios: scenariosBody, button, ...rest } }, res) => {
+      let updatedScenarios: string[] = [];
+
+      if (button === 'modify') {
+        updatedScenarios = groupNames
+          .reduce<string[]>((result, groupName) => {
+            if (rest[groupName]) {
+              result.push(rest[groupName]);
+            }
+
+            return result;
+          }, [])
+          .concat(scenariosBody == null ? [] : scenariosBody)
+          .filter(scenarioName => scenarioNames.includes(scenarioName));
       }
 
-      return result;
-    }, []);
-    updatedScenarios = updatedScenarios.concat(
-      scenariosBody == null ? [] : scenariosBody,
-    );
-    updatedScenarios = updatedScenarios.filter(scenarioName =>
-      scenarioNames.includes(scenarioName),
-    );
+      updateScenarios(updatedScenarios);
 
-    updateScenarios(updatedScenarios);
+      const { groups, other } = getPageVariables(
+        scenarioMocks,
+        updatedScenarios,
+      );
 
-    const { groups, other } = getPageVariables(scenarioMocks, updatedScenarios);
-
-    res.render('index.njk', {
-      groups,
-      other,
-      updatedScenarios,
-    });
-  });
+      res.render('index.njk', {
+        groups,
+        other,
+        updatedScenarios,
+      });
+    },
+  );
 
   app.put(
     modifyScenariosPath,

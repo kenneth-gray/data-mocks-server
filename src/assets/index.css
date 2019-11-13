@@ -10,7 +10,8 @@
 /* Remove default padding */
 ul[class],
 ol[class],
-legend {
+legend,
+fieldset {
   padding: 0;
 }
 
@@ -28,8 +29,13 @@ figure,
 figcaption,
 blockquote,
 dl,
-dd {
+dd,
+fieldset {
   margin: 0;
+}
+
+fieldset {
+  border: none;
 }
 
 /* Set core body defaults */
