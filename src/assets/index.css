@@ -124,3 +124,11 @@ button:focus {
 .stack0 > * + * {
   margin-top: 1rem;
 }
+
+.button-group > * {
+  margin: -0.5rem;
+}
+
+.button-group > * > button {
+  margin: 0.5rem;
+}
