@@ -5,10 +5,10 @@ import { run } from './index';
 
 describe('run', () => {
   describe('port', () => {
-    it('defaults to 3000', () => {
+    it('defaults to 3000', async () => {
       const server = run({ default: [] });
 
-      return serverTest(server, () => {
+      await serverTest(server, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
@@ -17,11 +17,11 @@ describe('run', () => {
       });
     });
 
-    it('can be set using options', () => {
+    it('can be set using options', async () => {
       const expectedPort = 5000;
       const server = run({ default: [], options: { port: expectedPort } });
 
-      return serverTest(server, () => {
+      await serverTest(server, () => {
         const address = server.address();
         const port =
           !!address && typeof address !== 'string' ? address.port : 0;
@@ -32,7 +32,7 @@ describe('run', () => {
   });
 
   describe('default mocks', () => {
-    it('respond as expected', () => {
+    it('respond as expected', async () => {
       const expectedGetResponse = { get: 'food' };
       const expectedPostResponse = { post: 'mail' };
       const expectedPutResponse = { put: 'it down' };
@@ -63,7 +63,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const [
           getResponse,
           postResponse,
@@ -83,7 +83,7 @@ describe('run', () => {
       });
     });
 
-    it('delayed responses work', () => {
+    it('delayed responses work', async () => {
       const responseDelay = 500;
       const server = run({
         default: [
@@ -96,7 +96,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const startTime = getStartTime();
 
         await rp.get('http://localhost:3000/test-me', {
@@ -109,7 +109,7 @@ describe('run', () => {
       });
     });
 
-    it('can use functions for responses', () => {
+    it('can use functions for responses', async () => {
       const server = run({
         default: [
           {
@@ -124,7 +124,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -143,7 +143,7 @@ describe('run', () => {
       });
     });
 
-    it('can use async functions for responses', () => {
+    it('can use async functions for responses', async () => {
       const server = run({
         default: [
           {
@@ -158,7 +158,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const id = 'some-id';
         const testQuery = 'test-query';
         const body = { some: 'body' };
@@ -177,7 +177,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL query over GET', () => {
+    it('supports GraphQL query over GET', async () => {
       const expectedResponse = {
         data: {
           firstName: 'Alan',
@@ -199,7 +199,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           query Person {
             firstName
@@ -216,7 +216,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL variables over GET', () => {
+    it('supports GraphQL variables over GET', async () => {
       const getVariables = { a: 1, b: 2 };
       const expectedResponse = {
         data: {
@@ -243,7 +243,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           query Person {
             firstName
@@ -262,7 +262,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL over GET when operationName is provided', () => {
+    it('supports GraphQL over GET when operationName is provided', async () => {
       const operationName = 'Person';
       const expectedResponse = {
         data: {
@@ -285,7 +285,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           {
             firstName
@@ -302,7 +302,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL query over POST', () => {
+    it('supports GraphQL query over POST', async () => {
       const expectedResponse = {
         data: {
           firstName: 'Alan',
@@ -324,7 +324,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           query Person {
             firstName
@@ -341,7 +341,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL variables over POST', () => {
+    it('supports GraphQL variables over POST', async () => {
       const postVariables = { a: 1, b: 2 };
       const expectedResponse = {
         data: {
@@ -368,7 +368,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           query Person {
             firstName
@@ -386,7 +386,7 @@ describe('run', () => {
       });
     });
 
-    it('supports GraphQL query over POST when operationName is provided', () => {
+    it('supports GraphQL query over POST when operationName is provided', async () => {
       const expectedResponse = {
         data: {
           firstName: 'Alan',
@@ -408,7 +408,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const query = `
           {
             firstName
@@ -426,7 +426,7 @@ describe('run', () => {
       });
     });
 
-    it('allows empty responses', () => {
+    it('allows empty responses', async () => {
       const server = run({
         default: [
           {
@@ -436,7 +436,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const response = await rp.get(`http://localhost:3000/api/test`, {
           resolveWithFullResponse: true,
         });
@@ -446,7 +446,7 @@ describe('run', () => {
       });
     });
 
-    it('allows null responses', () => {
+    it('allows null responses', async () => {
       const server = run({
         default: [
           {
@@ -457,7 +457,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const response = await rp.get(`http://localhost:3000/api/test`, {
           json: true,
         });
@@ -466,7 +466,7 @@ describe('run', () => {
       });
     });
 
-    it('adds application/json content-type when response is not undefined', () => {
+    it('adds application/json content-type when response is not undefined', async () => {
       const server = run({
         default: [
           {
@@ -477,7 +477,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const response = await rp.get(`http://localhost:3000/api/test`, {
           resolveWithFullResponse: true,
           json: true,
@@ -487,7 +487,7 @@ describe('run', () => {
       });
     });
 
-    it('adds application/json content-type when response is not undefined and responseHeaders does not contain content-type', () => {
+    it('adds application/json content-type when response is not undefined and responseHeaders does not contain content-type', async () => {
       const server = run({
         default: [
           {
@@ -501,7 +501,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const response = await rp.get(`http://localhost:3000/api/test`, {
           resolveWithFullResponse: true,
           json: true,
@@ -512,7 +512,7 @@ describe('run', () => {
       });
     });
 
-    it('does not add application/json content-type when content-type is already defined', () => {
+    it('does not add application/json content-type when content-type is already defined', async () => {
       const server = run({
         default: [
           {
@@ -526,7 +526,7 @@ describe('run', () => {
         ],
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const response = await rp.get(`http://localhost:3000/api/test`, {
           resolveWithFullResponse: true,
         });
@@ -537,7 +537,7 @@ describe('run', () => {
   });
 
   describe('scenarios', () => {
-    it('override default urls', () => {
+    it('override default urls', async () => {
       const expectedInitialResponse = {};
       const expectedResponse = { something: 'new' };
       const server = run({
@@ -559,7 +559,7 @@ describe('run', () => {
         },
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const initialResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
@@ -577,7 +577,7 @@ describe('run', () => {
       });
     });
 
-    it('multiple scenarios can be enabled', () => {
+    it('multiple scenarios can be enabled', async () => {
       const expectedResponse1 = { something: 'new' };
       const expectedResponse2 = { something: 'else' };
       const server = run({
@@ -611,7 +611,7 @@ describe('run', () => {
         },
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         await rp.put('http://localhost:3000/modify-scenarios', {
           body: { scenarios: ['test', 'test2'] },
           json: true,
@@ -631,7 +631,7 @@ describe('run', () => {
       });
     });
 
-    it('errors when attempting to enable 2 scenarios that are in the same group', () => {
+    it('errors when attempting to enable 2 scenarios that are in the same group', async () => {
       const server = run({
         default: [
           {
@@ -664,7 +664,7 @@ describe('run', () => {
         },
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         expect.assertions(1);
         try {
           await rp.put('http://localhost:3000/modify-scenarios', {
@@ -677,7 +677,7 @@ describe('run', () => {
       });
     });
 
-    it('can be reset', () => {
+    it('can be reset', async () => {
       const initialResponse = { something: 'old' };
       const scenarioResponse = { something: 'new' };
       const server = run({
@@ -699,7 +699,7 @@ describe('run', () => {
         },
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
@@ -727,7 +727,7 @@ describe('run', () => {
       });
     });
 
-    it('reset-scenarios and modify-scenarios paths can be changed', () => {
+    it('reset-scenarios and modify-scenarios paths can be changed', async () => {
       const initialResponse = { something: 'old' };
       const scenarioResponse = { something: 'new' };
       const server = run({
@@ -753,7 +753,7 @@ describe('run', () => {
         },
       });
 
-      return serverTest(server, async () => {
+      await serverTest(server, async () => {
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
