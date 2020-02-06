@@ -14,6 +14,8 @@ import {
   MockResponse,
   Override,
   Operation,
+  HttpMock,
+  GraphQlMock,
 } from './types';
 
 export * from './types';
@@ -120,6 +122,7 @@ function run({
         return;
       }
 
+      const scenariosByGroup: { [key: string]: number } = {};
       for (const scenario of scenariosBody) {
         if (!scenarioNames.includes(scenario)) {
           res.status(400).json({
@@ -127,14 +130,22 @@ function run({
           });
           return;
         }
+
+        const scenarioMock = scenarioMocks[scenario];
+        if (!Array.isArray(scenarioMock)) {
+          const { group } = scenarioMock;
+          if (scenariosByGroup[group]) {
+            res.status(400).json({
+              message: `Scenario "${scenario}" cannot be selected, because scenario "${scenariosByGroup[group]}" from group "${group}" has already been selected`,
+            });
+            return;
+          }
+
+          scenariosByGroup[group] = scenario;
+        }
       }
 
-      try {
-        updateScenarios(scenariosBody);
-      } catch ({ message }) {
-        res.status(400).json({ message });
-        return;
-      }
+      updateScenarios(scenariosBody);
 
       res.sendStatus(204);
     },
@@ -179,92 +190,78 @@ function reduceAllMocksForScenarios({
   defaultMocks: Mock[];
   scenarioMocks: Scenarios;
   selectedScenarios: string[];
-}): Mock[] {
+}): { httpMocks: HttpMock[]; graphQlMocks: GraphQlMock[] } {
+  let defaultHttpMocks = defaultMocks.filter(
+    ({ method }) => method !== 'GRAPHQL',
+  ) as HttpMock[];
+  let defaultGraphQlMocks = defaultMocks.filter(
+    ({ method }) => method === 'GRAPHQL',
+  ) as GraphQlMock[];
+
   if (selectedScenarios.length === 0) {
-    return defaultMocks;
+    return { httpMocks: defaultHttpMocks, graphQlMocks: defaultGraphQlMocks };
   }
 
-  const { reducedMocks } = selectedScenarios.reduce<{
-    groups: Record<string, string>;
-    reducedMocks: Mock[];
-  }>(
+  const selectedScenarioMocks = selectedScenarios.reduce<Mock[]>(
     (result, selectedScenario) => {
-      const mocks = scenarioMocks[selectedScenario];
+      const scenarioMock = scenarioMocks[selectedScenario];
+      const mocks = Array.isArray(scenarioMock)
+        ? scenarioMock
+        : scenarioMock.mocks;
 
-      if (Array.isArray(mocks)) {
-        result.reducedMocks = result.reducedMocks.concat(mocks);
-
-        return result;
-      }
-
-      if (result.groups[mocks.group]) {
-        throw new Error(
-          `Scenario "${selectedScenario}" cannot be selected, because scenario "${
-            result.groups[mocks.group]
-          }" from group "${mocks.group}" has already been selected`,
-        );
-      }
-
-      result.groups[mocks.group] = selectedScenario;
-      result.reducedMocks = result.reducedMocks.concat(mocks.mocks);
-
-      return result;
-    },
-    { groups: {}, reducedMocks: [] },
-  );
-
-  const defaultMocksFilteredGraphQl = defaultMocks.reduce<Mock[]>(
-    (result, defaultMock) => {
-      if (defaultMock.method !== 'GRAPHQL') {
-        result.push(defaultMock);
-
-        return result;
-      }
-
-      const filteredGraphQlMock = {
-        ...defaultMock,
-        operations: defaultMock.operations.filter(
-          ({ name: defaultMockOperationName }) => {
-            if (
-              reducedMocks.some(
-                mock =>
-                  mock.method === 'GRAPHQL' &&
-                  mock.url === defaultMock.url &&
-                  mock.operations.some(
-                    ({ name }) => name === defaultMockOperationName,
-                  ),
-              )
-            ) {
-              // Remove defaultMock operation
-              return false;
-            }
-
-            return true;
-          },
-        ),
-      };
-
-      result.push(filteredGraphQlMock);
-
-      return result;
+      return result.concat(mocks);
     },
     [],
   );
 
-  return defaultMocksFilteredGraphQl
-    .filter(defaultMock => {
-      // Multiple graphQl urls are allowed and the graphQl operations have veen filtered out above
-      if (defaultMock.method === 'GRAPHQL') {
-        return true;
-      }
+  const defaultAndSelectedHttpMocks = defaultHttpMocks.concat(
+    selectedScenarioMocks.filter(
+      ({ method }) => method !== 'GRAPHQL',
+    ) as HttpMock[],
+  );
+  const defaultAndSelectedGraphQlMocks = defaultGraphQlMocks.concat(
+    selectedScenarioMocks.filter(
+      ({ method }) => method === 'GRAPHQL',
+    ) as GraphQlMock[],
+  );
 
-      return !reducedMocks.some(
-        mock =>
-          mock.url.toString() === defaultMock.url.toString() &&
-          defaultMock.method === mock.method,
-      );
-    })
-    .concat(reducedMocks);
+  const httpMocksByUrlAndMethod = defaultAndSelectedHttpMocks.reduce<
+    Record<string, HttpMock>
+  >((result, mock) => {
+    const { url, method } = mock;
+    // Always take the latest mock
+    result[`${url.toString()}${method}`] = mock;
+
+    return result;
+  }, {});
+  const httpMocks = Object.values(httpMocksByUrlAndMethod);
+
+  const graphQlMocksByUrlAndOperations = defaultAndSelectedGraphQlMocks.reduce<
+    Record<string, Record<string, Operation>>
+  >((result, mock) => {
+    const { url, operations } = mock;
+
+    const operationsByName: Record<string, Operation> = result[url]
+      ? result[url]
+      : {};
+
+    operations.forEach(operation => {
+      // Always take the latest operation
+      operationsByName[operation.name] = operation;
+    });
+
+    result[url] = operationsByName;
+    return result;
+  }, {});
+  const graphQlMocks = Object.entries(graphQlMocksByUrlAndOperations).map(
+    ([url, operationsByName]) => ({
+      method: 'GRAPHQL',
+      url,
+      operations: Object.values(operationsByName),
+    }),
+  ) as GraphQlMock[];
+
+  return { httpMocks, graphQlMocks };
 }
 
 type CreateRouterInput = {
@@ -280,58 +277,18 @@ function createRouter({
 }: CreateRouterInput) {
   const router = Router();
 
-  const graphQlUrlToHandlers: Record<
-    string,
-    {
-      queries: GraphQlHandler[];
-      mutations: GraphQlHandler[];
-    }
-  > = {};
-  const mocks = reduceAllMocksForScenarios({
+  const { httpMocks, graphQlMocks } = reduceAllMocksForScenarios({
     defaultMocks,
     scenarioMocks,
     selectedScenarios,
   });
 
-  mocks.forEach(mock => {
-    if (mock.method === 'GRAPHQL') {
-      const { queries, mutations } = mock.operations.reduce<{
-        queries: GraphQlHandler[];
-        mutations: GraphQlHandler[];
-      }>(
-        (result, operation) => {
-          const handler = createGraphQlHandler(operation);
-
-          if (operation.type === 'mutation') {
-            result.mutations.push(handler);
-          } else {
-            result.queries.push(handler);
-          }
-
-          return result;
-        },
-        { queries: [], mutations: [] },
-      );
-
-      if (!graphQlUrlToHandlers[mock.url]) {
-        graphQlUrlToHandlers[mock.url] = { queries: [], mutations: [] };
-      }
-
-      graphQlUrlToHandlers[mock.url].queries = graphQlUrlToHandlers[
-        mock.url
-      ].queries.concat(queries);
-      graphQlUrlToHandlers[mock.url].mutations = graphQlUrlToHandlers[
-        mock.url
-      ].mutations.concat(mutations);
-
-      return;
-    }
-
-    const { method, url, ...rest } = mock;
+  httpMocks.forEach(httpMock => {
+    const { method, url, ...rest } = httpMock;
 
     const handler = createHandler(rest);
 
-    switch (mock.method) {
+    switch (httpMock.method) {
       case 'GET':
         router.get(url, (req, res) => {
           handler(req, res);
@@ -358,6 +315,36 @@ function createRouter({
         );
     }
   });
+
+  const graphQlUrlToHandlers = graphQlMocks.reduce<
+    Record<
+      string,
+      {
+        queries: GraphQlHandler[];
+        mutations: GraphQlHandler[];
+      }
+    >
+  >((result, { url, operations }) => {
+    const queries = operations
+      .filter(({ type }) => type === 'query')
+      .map(createGraphQlHandler);
+    const mutations = operations
+      .filter(({ type }) => type === 'mutation')
+      .map(createGraphQlHandler);
+
+    const queriesAndMutations = result[url]
+      ? result[url]
+      : { queries: [], mutations: [] };
+
+    queriesAndMutations.queries = queriesAndMutations.queries.concat(queries);
+    queriesAndMutations.mutations = queriesAndMutations.mutations.concat(
+      mutations,
+    );
+
+    result[url] = queriesAndMutations;
+
+    return result;
+  }, {});
 
   Object.entries(graphQlUrlToHandlers).forEach(
     ([url, { queries, mutations }]) => {
