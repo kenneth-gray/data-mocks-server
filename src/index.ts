@@ -16,13 +16,16 @@ import {
   Operation,
   HttpMock,
   GraphQlMock,
+  Default,
+  Context,
+  SetContext,
 } from './types';
 
 export * from './types';
 export { run };
 
 type Input = {
-  default: Mock[];
+  default: Default;
   scenarios?: Scenarios;
   options?: Options;
 };
@@ -46,7 +49,11 @@ function run({
   const scenarioNames = Object.keys(scenarioMocks);
   const groupNames = Object.values(scenarioMocks).reduce<string[]>(
     (result, mock) => {
-      if (Array.isArray(mock) || result.includes(mock.group)) {
+      if (
+        Array.isArray(mock) ||
+        mock.group == null ||
+        result.includes(mock.group)
+      ) {
         return result;
       }
 
@@ -132,7 +139,7 @@ function run({
         }
 
         const scenarioMock = scenarioMocks[scenario];
-        if (!Array.isArray(scenarioMock)) {
+        if (!Array.isArray(scenarioMock) && scenarioMock.group) {
           const { group } = scenarioMock;
           if (scenariosByGroup[group]) {
             res.status(400).json({
@@ -168,20 +175,27 @@ function run({
 
   function updateScenarios(updatedScenarios: string[]) {
     selectedScenarios = updatedScenarios;
-    const selectedScenarioMocks = selectedScenarios.reduce<Mock[]>(
-      (result, selectedScenario) => {
-        const scenarioMock = scenarioMocks[selectedScenario];
-        const mocks = Array.isArray(scenarioMock)
-          ? scenarioMock
-          : scenarioMock.mocks;
 
-        return result.concat(mocks);
-      },
+    const defaultAndScenarioMocks = [defaultMocks].concat(
+      selectedScenarios.map(scenario => scenarioMocks[scenario]),
+    );
+
+    let context: Context = {};
+    defaultAndScenarioMocks.forEach(scenarioMock => {
+      if (!Array.isArray(scenarioMock) && scenarioMock.context) {
+        context = { ...context, ...scenarioMock.context() };
+      }
+    });
+
+    const mocks = defaultAndScenarioMocks.reduce<Mock[]>(
+      (result, scenarioMock) =>
+        result.concat(
+          Array.isArray(scenarioMock) ? scenarioMock : scenarioMock.mocks,
+        ),
       [],
     );
-    const combinedMocks = defaultMocks.concat(selectedScenarioMocks);
 
-    router = createRouter(combinedMocks);
+    router = createRouter({ mocks, context });
 
     console.log('Selected scenarios', updatedScenarios);
   }
@@ -240,7 +254,14 @@ function getHttpAndGraphQlMocks(
   return { httpMocks, graphQlMocks };
 }
 
-function createRouter(mocks: Mock[]) {
+function createRouter({
+  mocks,
+  context: initialContext,
+}: {
+  mocks: Mock[];
+  context: Context;
+}) {
+  let context = initialContext;
   const router = Router();
 
   const { httpMocks, graphQlMocks } = getHttpAndGraphQlMocks(mocks);
@@ -248,27 +269,30 @@ function createRouter(mocks: Mock[]) {
   httpMocks.forEach(httpMock => {
     const { method, url, ...rest } = httpMock;
 
-    const handler = createHandler(rest);
+    const handler = createHandler({
+      ...rest,
+      setContext,
+    });
 
     switch (httpMock.method) {
       case 'GET':
         router.get(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'POST':
         router.post(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'PUT':
         router.put(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'DELETE':
         router.delete(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       default:
@@ -289,10 +313,14 @@ function createRouter(mocks: Mock[]) {
   >((result, { url, operations }) => {
     const queries = operations
       .filter(({ type }) => type === 'query')
-      .map(createGraphQlHandler);
+      .map(operation =>
+        createGraphQlHandler({ ...operation, setContext, getContext }),
+      );
     const mutations = operations
       .filter(({ type }) => type === 'mutation')
-      .map(createGraphQlHandler);
+      .map(operation =>
+        createGraphQlHandler({ ...operation, setContext, getContext }),
+      );
 
     const queriesAndMutations = result[url]
       ? result[url]
@@ -316,6 +344,14 @@ function createRouter(mocks: Mock[]) {
   );
 
   return router;
+
+  function setContext(partialContext: Context) {
+    context = { ...context, ...partialContext };
+  }
+
+  function getContext() {
+    return context;
+  }
 }
 
 type Groups = Array<{
@@ -336,7 +372,7 @@ function getPageVariables(
     [key: string]: string[];
   }>(
     (result, [scenarioName, scenarioMock]) => {
-      if (Array.isArray(scenarioMock)) {
+      if (Array.isArray(scenarioMock) || scenarioMock.group == null) {
         result.other.push(scenarioName);
 
         return result;
@@ -405,8 +441,12 @@ type GraphQlHandler = (
 
 function createGraphQlHandler({
   name: operationNameToCheck,
+  getContext,
   ...rest
-}: Operation) {
+}: Operation & {
+  setContext: SetContext;
+  getContext: () => Context;
+}) {
   const handler = createHandler(rest);
 
   const graphQlHandler: GraphQlHandler = (req, res) => {
@@ -416,6 +456,7 @@ function createGraphQlHandler({
           operationName: req.body.operationName,
           query: req.body.query,
           variables: req.body.variables,
+          context: getContext(),
         },
         res,
       );
@@ -434,13 +475,17 @@ function createHandler<TInput, TResponse>({
   responseCode = 200,
   responseHeaders,
   responseDelay = 0,
-}: ResponseProps<MockResponse<TInput, TResponse>>) {
+  setContext,
+}: ResponseProps<MockResponse<TInput, TResponse>> & {
+  setContext: SetContext;
+}) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
       typeof response === 'function'
-        ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)(
-            req,
-          )
+        ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)({
+            ...req,
+            setContext,
+          })
         : response;
 
     let responseCollection: {

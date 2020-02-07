@@ -1,8 +1,16 @@
+export type Default =
+  | Mock[]
+  | {
+      context?: () => Context;
+      mocks: Mock[];
+    };
+
 export type Scenarios = {
   [scenario: string]:
     | Mock[]
     | {
-        group: string;
+        group?: string;
+        context?: () => Context;
         mocks: Mock[];
       };
 };
@@ -14,7 +22,9 @@ export type Override<TResponse> = {
 };
 
 export type ResponseFunction<TInput, TResponse> = (
-  input: TInput,
+  input: TInput & {
+    setContext: SetContext;
+  },
 ) => TResponse | Override<TResponse> | Promise<TResponse | Override<TResponse>>;
 
 export type MockResponse<TInput, TResponse> =
@@ -39,6 +49,7 @@ export type HttpMock = {
       query: Record<string, string | Array<string>>;
       body: Record<string, any>;
       params: Record<string, string>;
+      context: Context;
     },
     HttpResponse
   >
@@ -58,6 +69,7 @@ export type Operation = {
       operationName: string;
       query: string;
       variables: Record<string, any>;
+      context: Context;
     },
     GraphQlResponse | HttpResponse
   >
@@ -77,3 +89,7 @@ export type Options = {
   modifyScenariosPath?: string;
   resetScenariosPath?: string;
 };
+
+export type Context = Record<string, any>;
+
+export type SetContext = (partialContext: Context) => void;
