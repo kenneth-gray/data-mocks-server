@@ -167,13 +167,22 @@ function run({
   );
 
   function updateScenarios(updatedScenarios: string[]) {
-    router = createRouter({
-      defaultMocks,
-      scenarioMocks,
-      selectedScenarios: updatedScenarios,
-    });
-
     selectedScenarios = updatedScenarios;
+    const selectedScenarioMocks = selectedScenarios.reduce<Mock[]>(
+      (result, selectedScenario) => {
+        const scenarioMock = scenarioMocks[selectedScenario];
+        const mocks = Array.isArray(scenarioMock)
+          ? scenarioMock
+          : scenarioMock.mocks;
+
+        return result.concat(mocks);
+      },
+      [],
+    );
+    const combinedMocks = defaultMocks.concat(selectedScenarioMocks);
+
+    router = createRouter(combinedMocks);
+
     console.log('Selected scenarios', updatedScenarios);
   }
 }
@@ -182,50 +191,17 @@ function addDelay(responseDelay: number) {
   return new Promise(res => setTimeout(res, responseDelay));
 }
 
-function reduceAllMocksForScenarios({
-  defaultMocks,
-  scenarioMocks,
-  selectedScenarios,
-}: {
-  defaultMocks: Mock[];
-  scenarioMocks: Scenarios;
-  selectedScenarios: string[];
-}): { httpMocks: HttpMock[]; graphQlMocks: GraphQlMock[] } {
-  let defaultHttpMocks = defaultMocks.filter(
+function getHttpAndGraphQlMocks(
+  mocks: Mock[],
+): { httpMocks: HttpMock[]; graphQlMocks: GraphQlMock[] } {
+  const initialHttpMocks = mocks.filter(
     ({ method }) => method !== 'GRAPHQL',
   ) as HttpMock[];
-  let defaultGraphQlMocks = defaultMocks.filter(
+  const initialGraphQlMocks = mocks.filter(
     ({ method }) => method === 'GRAPHQL',
   ) as GraphQlMock[];
 
-  if (selectedScenarios.length === 0) {
-    return { httpMocks: defaultHttpMocks, graphQlMocks: defaultGraphQlMocks };
-  }
-
-  const selectedScenarioMocks = selectedScenarios.reduce<Mock[]>(
-    (result, selectedScenario) => {
-      const scenarioMock = scenarioMocks[selectedScenario];
-      const mocks = Array.isArray(scenarioMock)
-        ? scenarioMock
-        : scenarioMock.mocks;
-
-      return result.concat(mocks);
-    },
-    [],
-  );
-
-  const defaultAndSelectedHttpMocks = defaultHttpMocks.concat(
-    selectedScenarioMocks.filter(
-      ({ method }) => method !== 'GRAPHQL',
-    ) as HttpMock[],
-  );
-  const defaultAndSelectedGraphQlMocks = defaultGraphQlMocks.concat(
-    selectedScenarioMocks.filter(
-      ({ method }) => method === 'GRAPHQL',
-    ) as GraphQlMock[],
-  );
-
-  const httpMocksByUrlAndMethod = defaultAndSelectedHttpMocks.reduce<
+  const httpMocksByUrlAndMethod = initialHttpMocks.reduce<
     Record<string, HttpMock>
   >((result, mock) => {
     const { url, method } = mock;
@@ -236,7 +212,7 @@ function reduceAllMocksForScenarios({
   }, {});
   const httpMocks = Object.values(httpMocksByUrlAndMethod);
 
-  const graphQlMocksByUrlAndOperations = defaultAndSelectedGraphQlMocks.reduce<
+  const graphQlMocksByUrlAndOperations = initialGraphQlMocks.reduce<
     Record<string, Record<string, Operation>>
   >((result, mock) => {
     const { url, operations } = mock;
@@ -264,24 +240,10 @@ function reduceAllMocksForScenarios({
   return { httpMocks, graphQlMocks };
 }
 
-type CreateRouterInput = {
-  defaultMocks: Mock[];
-  scenarioMocks: Scenarios;
-  selectedScenarios: string[];
-};
-
-function createRouter({
-  defaultMocks,
-  scenarioMocks,
-  selectedScenarios,
-}: CreateRouterInput) {
+function createRouter(mocks: Mock[]) {
   const router = Router();
 
-  const { httpMocks, graphQlMocks } = reduceAllMocksForScenarios({
-    defaultMocks,
-    scenarioMocks,
-    selectedScenarios,
-  });
+  const { httpMocks, graphQlMocks } = getHttpAndGraphQlMocks(mocks);
 
   httpMocks.forEach(httpMock => {
     const { method, url, ...rest } = httpMock;
