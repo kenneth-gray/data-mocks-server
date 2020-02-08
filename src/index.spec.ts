@@ -534,6 +534,176 @@ describe('run', () => {
         expect(response.headers['content-type']).toContain('text/*');
       });
     });
+
+    it('context works for non GraphQL requests', async () => {
+      const initialName = 'Alice';
+      const updatedName = 'Bob';
+
+      const server = run({
+        default: {
+          context: { name: initialName },
+          mocks: [
+            {
+              url: '/user',
+              method: 'GET',
+              response: ({ context }) => context.name,
+            },
+            {
+              url: '/user',
+              method: 'POST',
+              response: ({ body: { name }, updateContext }) => {
+                updateContext({ name });
+
+                return name;
+              },
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        const name1 = await rp.get('http://localhost:3000/user', {
+          json: true,
+        });
+        expect(name1).toEqual(initialName);
+
+        const name2 = await rp.post('http://localhost:3000/user', {
+          body: { name: updatedName },
+          json: true,
+        });
+        expect(name2).toEqual(updatedName);
+
+        const name3 = await rp.get('http://localhost:3000/user', {
+          json: true,
+        });
+        expect(name3).toEqual(updatedName);
+      });
+    });
+
+    it('partial context can be set', async () => {
+      const initialName = 'Dean';
+      const updatedName = 'Elle';
+      const age = 40;
+
+      const server = run({
+        default: {
+          context: { name: initialName, age },
+          mocks: [
+            {
+              url: '/info',
+              method: 'GET',
+              response: ({ context }) => context,
+            },
+            {
+              url: '/user',
+              method: 'POST',
+              response: ({ body: { name }, updateContext }) => {
+                updateContext({ name });
+
+                return name;
+              },
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        const info1 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info1).toEqual({ name: initialName, age });
+
+        const name = await rp.post('http://localhost:3000/user', {
+          body: { name: updatedName },
+          json: true,
+        });
+        expect(name).toEqual(updatedName);
+
+        const info2 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info2).toEqual({ name: updatedName, age });
+      });
+    });
+
+    it('context works for GraphQL requests', async () => {
+      const initialName = 'Alice';
+      const updatedName = 'Bob';
+
+      const server = run({
+        default: {
+          context: { name: initialName },
+          mocks: [
+            {
+              url: '/graphql',
+              method: 'GRAPHQL',
+              operations: [
+                {
+                  type: 'query',
+                  name: 'GetUser',
+                  response: ({ context }) => ({
+                    data: { user: { name: context.name } },
+                  }),
+                },
+                {
+                  type: 'query',
+                  name: 'UpdateUser',
+                  response: ({ updateContext, variables: { name } }) => {
+                    updateContext({ name });
+
+                    return {
+                      data: { updateUser: { name } },
+                    };
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        const query = `
+          query GetUser {
+            user {
+              name
+            }
+          }
+        `;
+        const mutation = `
+          mutation UpdateUser($name: String!) {
+            updateUser(name: $name) {
+              name
+            }
+          }
+        `;
+
+        const result1 = await rp.post('http://localhost:3000/graphql', {
+          json: true,
+          body: {
+            query,
+          },
+        });
+        expect(result1.data.user.name).toEqual(initialName);
+
+        const result2 = await rp.post('http://localhost:3000/graphql', {
+          body: {
+            query: mutation,
+            variables: { name: updatedName },
+          },
+          json: true,
+        });
+        expect(result2.data.updateUser.name).toEqual(updatedName);
+
+        const result3 = await rp.post('http://localhost:3000/graphql', {
+          json: true,
+          body: {
+            query,
+          },
+        });
+        expect(result3.data.user.name).toEqual(updatedName);
+      });
+    });
   });
 
   describe('scenarios', () => {
@@ -778,6 +948,93 @@ describe('run', () => {
         });
 
         expect(thirdResponse).toEqual(initialResponse);
+      });
+    });
+
+    it('scenario context overrides default context', async () => {
+      const defaultName = 'Alice';
+      const scenarioName = 'Bob';
+
+      const server = run({
+        default: {
+          context: { name: defaultName },
+          mocks: [
+            {
+              url: '/user',
+              method: 'GET',
+              response: ({ context }) => context.name,
+            },
+          ],
+        },
+        scenarios: {
+          test: {
+            context: { name: scenarioName },
+            mocks: [],
+          },
+        },
+      });
+
+      await serverTest(server, async () => {
+        const name1 = await rp.get('http://localhost:3000/user', {
+          json: true,
+        });
+        expect(name1).toEqual(defaultName);
+
+        await rp.put('http://localhost:3000/modify-scenarios', {
+          body: { scenarios: ['test'] },
+          json: true,
+        });
+
+        const name2 = await rp.get('http://localhost:3000/user', {
+          json: true,
+        });
+        expect(name2).toEqual(scenarioName);
+      });
+    });
+
+    it('scenario contexts add to initial context', async () => {
+      const name = 'Alice';
+      const age = 30;
+      const favouriteFood = 'Jelly';
+
+      const server = run({
+        default: {
+          context: { name },
+          mocks: [
+            {
+              url: '/info',
+              method: 'GET',
+              response: ({ context }) => context,
+            },
+          ],
+        },
+        scenarios: {
+          test: {
+            context: { age },
+            mocks: [],
+          },
+          test2: {
+            context: { favouriteFood },
+            mocks: [],
+          },
+        },
+      });
+
+      await serverTest(server, async () => {
+        const info1 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info1).toEqual({ name });
+
+        await rp.put('http://localhost:3000/modify-scenarios', {
+          body: { scenarios: ['test', 'test2'] },
+          json: true,
+        });
+
+        const info2 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info2).toEqual({ name, age, favouriteFood });
       });
     });
   });

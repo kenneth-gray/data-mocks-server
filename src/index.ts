@@ -16,13 +16,16 @@ import {
   Operation,
   HttpMock,
   GraphQlMock,
+  Default,
+  Context,
+  UpdateContext,
 } from './types';
 
 export * from './types';
 export { run };
 
 type Input = {
-  default: Mock[];
+  default: Default;
   scenarios?: Scenarios;
   options?: Options;
 };
@@ -46,7 +49,11 @@ function run({
   const scenarioNames = Object.keys(scenarioMocks);
   const groupNames = Object.values(scenarioMocks).reduce<string[]>(
     (result, mock) => {
-      if (Array.isArray(mock) || result.includes(mock.group)) {
+      if (
+        Array.isArray(mock) ||
+        mock.group == null ||
+        result.includes(mock.group)
+      ) {
         return result;
       }
 
@@ -132,7 +139,7 @@ function run({
         }
 
         const scenarioMock = scenarioMocks[scenario];
-        if (!Array.isArray(scenarioMock)) {
+        if (!Array.isArray(scenarioMock) && scenarioMock.group) {
           const { group } = scenarioMock;
           if (scenariosByGroup[group]) {
             res.status(400).json({
@@ -167,13 +174,29 @@ function run({
   );
 
   function updateScenarios(updatedScenarios: string[]) {
-    router = createRouter({
-      defaultMocks,
-      scenarioMocks,
-      selectedScenarios: updatedScenarios,
+    selectedScenarios = updatedScenarios;
+
+    const defaultAndScenarioMocks = [defaultMocks].concat(
+      selectedScenarios.map(scenario => scenarioMocks[scenario]),
+    );
+
+    let context: Context = {};
+    defaultAndScenarioMocks.forEach(scenarioMock => {
+      if (!Array.isArray(scenarioMock) && scenarioMock.context) {
+        context = { ...context, ...scenarioMock.context };
+      }
     });
 
-    selectedScenarios = updatedScenarios;
+    const mocks = defaultAndScenarioMocks.reduce<Mock[]>(
+      (result, scenarioMock) =>
+        result.concat(
+          Array.isArray(scenarioMock) ? scenarioMock : scenarioMock.mocks,
+        ),
+      [],
+    );
+
+    router = createRouter({ mocks, context });
+
     console.log('Selected scenarios', updatedScenarios);
   }
 }
@@ -182,50 +205,17 @@ function addDelay(responseDelay: number) {
   return new Promise(res => setTimeout(res, responseDelay));
 }
 
-function reduceAllMocksForScenarios({
-  defaultMocks,
-  scenarioMocks,
-  selectedScenarios,
-}: {
-  defaultMocks: Mock[];
-  scenarioMocks: Scenarios;
-  selectedScenarios: string[];
-}): { httpMocks: HttpMock[]; graphQlMocks: GraphQlMock[] } {
-  let defaultHttpMocks = defaultMocks.filter(
+function getHttpAndGraphQlMocks(
+  mocks: Mock[],
+): { httpMocks: HttpMock[]; graphQlMocks: GraphQlMock[] } {
+  const initialHttpMocks = mocks.filter(
     ({ method }) => method !== 'GRAPHQL',
   ) as HttpMock[];
-  let defaultGraphQlMocks = defaultMocks.filter(
+  const initialGraphQlMocks = mocks.filter(
     ({ method }) => method === 'GRAPHQL',
   ) as GraphQlMock[];
 
-  if (selectedScenarios.length === 0) {
-    return { httpMocks: defaultHttpMocks, graphQlMocks: defaultGraphQlMocks };
-  }
-
-  const selectedScenarioMocks = selectedScenarios.reduce<Mock[]>(
-    (result, selectedScenario) => {
-      const scenarioMock = scenarioMocks[selectedScenario];
-      const mocks = Array.isArray(scenarioMock)
-        ? scenarioMock
-        : scenarioMock.mocks;
-
-      return result.concat(mocks);
-    },
-    [],
-  );
-
-  const defaultAndSelectedHttpMocks = defaultHttpMocks.concat(
-    selectedScenarioMocks.filter(
-      ({ method }) => method !== 'GRAPHQL',
-    ) as HttpMock[],
-  );
-  const defaultAndSelectedGraphQlMocks = defaultGraphQlMocks.concat(
-    selectedScenarioMocks.filter(
-      ({ method }) => method === 'GRAPHQL',
-    ) as GraphQlMock[],
-  );
-
-  const httpMocksByUrlAndMethod = defaultAndSelectedHttpMocks.reduce<
+  const httpMocksByUrlAndMethod = initialHttpMocks.reduce<
     Record<string, HttpMock>
   >((result, mock) => {
     const { url, method } = mock;
@@ -236,7 +226,7 @@ function reduceAllMocksForScenarios({
   }, {});
   const httpMocks = Object.values(httpMocksByUrlAndMethod);
 
-  const graphQlMocksByUrlAndOperations = defaultAndSelectedGraphQlMocks.reduce<
+  const graphQlMocksByUrlAndOperations = initialGraphQlMocks.reduce<
     Record<string, Record<string, Operation>>
   >((result, mock) => {
     const { url, operations } = mock;
@@ -264,49 +254,45 @@ function reduceAllMocksForScenarios({
   return { httpMocks, graphQlMocks };
 }
 
-type CreateRouterInput = {
-  defaultMocks: Mock[];
-  scenarioMocks: Scenarios;
-  selectedScenarios: string[];
-};
-
 function createRouter({
-  defaultMocks,
-  scenarioMocks,
-  selectedScenarios,
-}: CreateRouterInput) {
+  mocks,
+  context: initialContext,
+}: {
+  mocks: Mock[];
+  context: Context;
+}) {
+  let context = initialContext;
   const router = Router();
 
-  const { httpMocks, graphQlMocks } = reduceAllMocksForScenarios({
-    defaultMocks,
-    scenarioMocks,
-    selectedScenarios,
-  });
+  const { httpMocks, graphQlMocks } = getHttpAndGraphQlMocks(mocks);
 
   httpMocks.forEach(httpMock => {
     const { method, url, ...rest } = httpMock;
 
-    const handler = createHandler(rest);
+    const handler = createHandler({
+      ...rest,
+      updateContext,
+    });
 
     switch (httpMock.method) {
       case 'GET':
         router.get(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'POST':
         router.post(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'PUT':
         router.put(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       case 'DELETE':
         router.delete(url, (req, res) => {
-          handler(req, res);
+          handler({ ...req, context }, res);
         });
         break;
       default:
@@ -327,10 +313,14 @@ function createRouter({
   >((result, { url, operations }) => {
     const queries = operations
       .filter(({ type }) => type === 'query')
-      .map(createGraphQlHandler);
+      .map(operation =>
+        createGraphQlHandler({ ...operation, updateContext, getContext }),
+      );
     const mutations = operations
       .filter(({ type }) => type === 'mutation')
-      .map(createGraphQlHandler);
+      .map(operation =>
+        createGraphQlHandler({ ...operation, updateContext, getContext }),
+      );
 
     const queriesAndMutations = result[url]
       ? result[url]
@@ -354,6 +344,16 @@ function createRouter({
   );
 
   return router;
+
+  function updateContext(partialContext: Context) {
+    context = { ...context, ...partialContext };
+
+    return context;
+  }
+
+  function getContext() {
+    return context;
+  }
 }
 
 type Groups = Array<{
@@ -374,7 +374,7 @@ function getPageVariables(
     [key: string]: string[];
   }>(
     (result, [scenarioName, scenarioMock]) => {
-      if (Array.isArray(scenarioMock)) {
+      if (Array.isArray(scenarioMock) || scenarioMock.group == null) {
         result.other.push(scenarioName);
 
         return result;
@@ -443,8 +443,12 @@ type GraphQlHandler = (
 
 function createGraphQlHandler({
   name: operationNameToCheck,
+  getContext,
   ...rest
-}: Operation) {
+}: Operation & {
+  updateContext: UpdateContext;
+  getContext: () => Context;
+}) {
   const handler = createHandler(rest);
 
   const graphQlHandler: GraphQlHandler = (req, res) => {
@@ -454,6 +458,7 @@ function createGraphQlHandler({
           operationName: req.body.operationName,
           query: req.body.query,
           variables: req.body.variables,
+          context: getContext(),
         },
         res,
       );
@@ -472,13 +477,17 @@ function createHandler<TInput, TResponse>({
   responseCode = 200,
   responseHeaders,
   responseDelay = 0,
-}: ResponseProps<MockResponse<TInput, TResponse>>) {
+  updateContext,
+}: ResponseProps<MockResponse<TInput, TResponse>> & {
+  updateContext: UpdateContext;
+}) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
       typeof response === 'function'
-        ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)(
-            req,
-          )
+        ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)({
+            ...req,
+            updateContext,
+          })
         : response;
 
     let responseCollection: {

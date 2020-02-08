@@ -65,13 +65,18 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 #### default
 
-> `Array<Mock>` | _required_
+> `Array<Mock> | { context, mocks }` | _required_
 
-See [Mock](#mock) for more details.
+<!-- https://www.tablesgenerator.com/markdown_tables -->
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| context | `object` | `undefined` | Used to set up data across API calls. |
+| mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
 
 #### scenarios
 
-> `{ [scenarioName]: Array<Mock | { group, mocks }> }`
+> `{ [scenarioName]: Array<Mock> | { group, mocks } }`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -79,7 +84,8 @@ See [Mock](#mock) for more details.
 |----------|------|---------|-------------|
 | scenarioName | `string` | _required_ | Name of scenario. |
 | Mock | `Mock` | _required_ | See [Mock](#mock) for more details. |
-| group | `string` | _required_ | Used to group scenarios together so that only one scenario in a group can be selected. |
+| group | `string` | `undefined` | Used to group scenarios together so that only one scenario in a group can be selected. |
+| context | `object` | `undefined` | Used to set up data across API calls. |
 | mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
 
 #### options
@@ -124,7 +130,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### HttpResponseFunction
 
-> `function({ query, body, params }): response | Promise<response>`
+> `function({ query, body, params, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -133,6 +139,8 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | query | `object` | `{}` | query object as defined by `express`. |
 | body | `object` | `{}` | body object as defined by `express`. |
 | params | `object` | `{}` | params object as defined by `express`. |
+| context | `object` | `{}` | Data stored across API calls. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
 | response | `undefined` / `Response` / `Override` | _required_ | [Response](#response), [Override](#override). |
 
 ### GraphQlMock
@@ -177,6 +185,8 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | operationName | `string` | `''` | operationName sent by client. |
 | query | `string` | `''` | GraphQL query. |
 | variables | `object` | `{}` | variables sent by client. |
+| context | `object` | `{}` | Data stored across API calls. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
 | response | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_ | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override). |
 
 ### Override
