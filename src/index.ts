@@ -1,4 +1,5 @@
 import { NextFunction } from 'connect';
+import cors from 'cors';
 import express, { Router, Request, Response } from 'express';
 import gql from 'graphql-tag';
 import nunjucks from 'nunjucks';
@@ -68,6 +69,7 @@ function run({
     express: app,
   });
 
+  app.use(cors());
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
