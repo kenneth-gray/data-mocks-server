@@ -71,8 +71,8 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `context` | `() => object` | `undefined` | Used to set up data across API calls. |
-| `mocks` | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
+| context | `object` | `undefined` | Used to set up data across API calls. |
+| mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
 
 #### scenarios
 
@@ -85,7 +85,7 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 | scenarioName | `string` | _required_ | Name of scenario. |
 | Mock | `Mock` | _required_ | See [Mock](#mock) for more details. |
 | group | `string` | `undefined` | Used to group scenarios together so that only one scenario in a group can be selected. |
-| context | `() => object` | `undefined` | Used to set up data across API calls. |
+| context | `object` | `undefined` | Used to set up data across API calls. |
 | mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
 
 #### options

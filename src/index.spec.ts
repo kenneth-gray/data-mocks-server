@@ -541,7 +541,7 @@ describe('run', () => {
 
       const server = run({
         default: {
-          context: () => ({ name: initialName }),
+          context: { name: initialName },
           mocks: [
             {
               url: '/user',
@@ -551,8 +551,8 @@ describe('run', () => {
             {
               url: '/user',
               method: 'POST',
-              response: ({ body: { name }, setContext }) => {
-                setContext({ name });
+              response: ({ body: { name }, updateContext }) => {
+                updateContext({ name });
 
                 return name;
               },
@@ -587,7 +587,7 @@ describe('run', () => {
 
       const server = run({
         default: {
-          context: () => ({ name: initialName, age }),
+          context: { name: initialName, age },
           mocks: [
             {
               url: '/info',
@@ -597,8 +597,8 @@ describe('run', () => {
             {
               url: '/user',
               method: 'POST',
-              response: ({ body: { name }, setContext }) => {
-                setContext({ name });
+              response: ({ body: { name }, updateContext }) => {
+                updateContext({ name });
 
                 return name;
               },
@@ -632,7 +632,7 @@ describe('run', () => {
 
       const server = run({
         default: {
-          context: () => ({ name: initialName }),
+          context: { name: initialName },
           mocks: [
             {
               url: '/graphql',
@@ -648,8 +648,8 @@ describe('run', () => {
                 {
                   type: 'query',
                   name: 'UpdateUser',
-                  response: ({ setContext, variables: { name } }) => {
-                    setContext({ name });
+                  response: ({ updateContext, variables: { name } }) => {
+                    updateContext({ name });
 
                     return {
                       data: { updateUser: { name } },
@@ -957,7 +957,7 @@ describe('run', () => {
 
       const server = run({
         default: {
-          context: () => ({ name: defaultName }),
+          context: { name: defaultName },
           mocks: [
             {
               url: '/user',
@@ -968,7 +968,7 @@ describe('run', () => {
         },
         scenarios: {
           test: {
-            context: () => ({ name: scenarioName }),
+            context: { name: scenarioName },
             mocks: [],
           },
         },
@@ -999,7 +999,7 @@ describe('run', () => {
 
       const server = run({
         default: {
-          context: () => ({ name }),
+          context: { name },
           mocks: [
             {
               url: '/info',
@@ -1010,11 +1010,11 @@ describe('run', () => {
         },
         scenarios: {
           test: {
-            context: () => ({ age }),
+            context: { age },
             mocks: [],
           },
           test2: {
-            context: () => ({ favouriteFood }),
+            context: { favouriteFood },
             mocks: [],
           },
         },

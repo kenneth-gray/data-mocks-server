@@ -183,7 +183,7 @@ function run({
     let context: Context = {};
     defaultAndScenarioMocks.forEach(scenarioMock => {
       if (!Array.isArray(scenarioMock) && scenarioMock.context) {
-        context = { ...context, ...scenarioMock.context() };
+        context = { ...context, ...scenarioMock.context };
       }
     });
 

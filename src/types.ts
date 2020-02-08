@@ -1,7 +1,7 @@
 export type Default =
   | Mock[]
   | {
-      context?: () => Context;
+      context?: Context;
       mocks: Mock[];
     };
 
@@ -10,7 +10,7 @@ export type Scenarios = {
     | Mock[]
     | {
         group?: string;
-        context?: () => Context;
+        context?: Context;
         mocks: Mock[];
       };
 };

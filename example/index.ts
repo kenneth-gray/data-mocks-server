@@ -2,11 +2,11 @@ import { run } from '../src';
 
 run({
   default: {
-    context: () => ({
+    context: {
       a: 1,
       b: 2,
       c: 3,
-    }),
+    },
     mocks: [
       {
         url: '/api/test-me',
