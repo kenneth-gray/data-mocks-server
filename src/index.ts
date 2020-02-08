@@ -18,7 +18,7 @@ import {
   GraphQlMock,
   Default,
   Context,
-  SetContext,
+  UpdateContext,
 } from './types';
 
 export * from './types';
@@ -271,7 +271,7 @@ function createRouter({
 
     const handler = createHandler({
       ...rest,
-      setContext,
+      updateContext,
     });
 
     switch (httpMock.method) {
@@ -314,12 +314,12 @@ function createRouter({
     const queries = operations
       .filter(({ type }) => type === 'query')
       .map(operation =>
-        createGraphQlHandler({ ...operation, setContext, getContext }),
+        createGraphQlHandler({ ...operation, updateContext, getContext }),
       );
     const mutations = operations
       .filter(({ type }) => type === 'mutation')
       .map(operation =>
-        createGraphQlHandler({ ...operation, setContext, getContext }),
+        createGraphQlHandler({ ...operation, updateContext, getContext }),
       );
 
     const queriesAndMutations = result[url]
@@ -345,8 +345,10 @@ function createRouter({
 
   return router;
 
-  function setContext(partialContext: Context) {
+  function updateContext(partialContext: Context) {
     context = { ...context, ...partialContext };
+
+    return context;
   }
 
   function getContext() {
@@ -444,7 +446,7 @@ function createGraphQlHandler({
   getContext,
   ...rest
 }: Operation & {
-  setContext: SetContext;
+  updateContext: UpdateContext;
   getContext: () => Context;
 }) {
   const handler = createHandler(rest);
@@ -475,16 +477,16 @@ function createHandler<TInput, TResponse>({
   responseCode = 200,
   responseHeaders,
   responseDelay = 0,
-  setContext,
+  updateContext,
 }: ResponseProps<MockResponse<TInput, TResponse>> & {
-  setContext: SetContext;
+  updateContext: UpdateContext;
 }) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
       typeof response === 'function'
         ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)({
             ...req,
-            setContext,
+            updateContext,
           })
         : response;
 

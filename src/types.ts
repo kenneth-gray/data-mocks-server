@@ -23,7 +23,7 @@ export type Override<TResponse> = {
 
 export type ResponseFunction<TInput, TResponse> = (
   input: TInput & {
-    setContext: SetContext;
+    updateContext: UpdateContext;
   },
 ) => TResponse | Override<TResponse> | Promise<TResponse | Override<TResponse>>;
 
@@ -92,4 +92,4 @@ export type Options = {
 
 export type Context = Record<string, any>;
 
-export type SetContext = (partialContext: Context) => void;
+export type UpdateContext = (partialContext: Context) => Context;

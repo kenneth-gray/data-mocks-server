@@ -1,76 +1,93 @@
 import { run } from '../src';
 
 run({
-  default: [
-    {
-      url: '/api/test-me',
-      method: 'GET',
-      response: { blue: 'yoyo' },
-    },
-    {
-      url: '/api/return/:someId',
-      method: 'GET',
-      response: ({ query, params }) => {
-        return {
-          query,
-          params,
-        };
+  default: {
+    context: () => ({
+      a: 1,
+      b: 2,
+      c: 3,
+    }),
+    mocks: [
+      {
+        url: '/api/test-me',
+        method: 'GET',
+        response: { blue: 'yoyo' },
       },
-    },
-    {
-      url: '/api/return/:someId',
-      method: 'POST',
-      response: async ({ body, params }) => {
-        return {
-          body,
-          params,
-        };
+      {
+        url: '/api/return/:someId',
+        method: 'GET',
+        response: ({ query, params }) => {
+          return {
+            query,
+            params,
+          };
+        },
       },
-    },
-    {
-      url: '/api/graphql',
-      method: 'GRAPHQL',
-      operations: [
-        {
-          type: 'query',
-          name: 'Cheese',
-          response: {
-            data: {
-              name: 'Cheddar',
-            },
-          },
+      {
+        url: '/api/return/:someId',
+        method: 'POST',
+        response: async ({ body, params }) => {
+          return {
+            body,
+            params,
+          };
         },
-        {
-          type: 'query',
-          name: 'Bread',
-          response: {
-            data: {
-              name: 'Bread Roll',
-            },
-          },
-        },
-      ],
-    },
-    {
-      url: '/api/graphql-function',
-      method: 'GRAPHQL',
-      operations: [
-        {
-          type: 'query',
-          name: 'Function',
-          response: async ({ operationName, query, variables }) => {
-            return {
+      },
+      {
+        url: '/api/graphql',
+        method: 'GRAPHQL',
+        operations: [
+          {
+            type: 'query',
+            name: 'Cheese',
+            response: {
               data: {
-                operationName,
-                query,
-                variables,
+                name: 'Cheddar',
               },
-            };
+            },
           },
-        },
-      ],
-    },
-  ],
+          {
+            type: 'query',
+            name: 'Bread',
+            response: {
+              data: {
+                name: 'Bread Roll',
+              },
+            },
+          },
+        ],
+      },
+      {
+        url: '/api/graphql-function',
+        method: 'GRAPHQL',
+        operations: [
+          {
+            type: 'query',
+            name: 'Function',
+            response: async ({ operationName, query, variables }) => {
+              return {
+                data: {
+                  operationName,
+                  query,
+                  variables,
+                },
+              };
+            },
+          },
+        ],
+      },
+      {
+        url: '/api/context',
+        method: 'GET',
+        response: ({ context }) => context,
+      },
+      {
+        url: '/api/context',
+        method: 'PUT',
+        response: ({ body, updateContext }) => updateContext(body),
+      },
+    ],
+  },
   scenarios: {
     blueCheese: {
       group: 'cheese',

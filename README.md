@@ -130,7 +130,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### HttpResponseFunction
 
-> `function({ query, body, params, context, setContext }): response | Promise<response>`
+> `function({ query, body, params, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -140,7 +140,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | body | `object` | `{}` | body object as defined by `express`. |
 | params | `object` | `{}` | params object as defined by `express`. |
 | context | `object` | `{}` | Data stored across API calls. |
-| setContext | `Function` | `object => void` | Used to set context. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
 | response | `undefined` / `Response` / `Override` | _required_ | [Response](#response), [Override](#override). |
 
 ### GraphQlMock
@@ -186,7 +186,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | query | `string` | `''` | GraphQL query. |
 | variables | `object` | `{}` | variables sent by client. |
 | context | `object` | `{}` | Data stored across API calls. |
-| setContext | `Function` | `object => void` | Used to set context. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
 | response | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_ | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override). |
 
 ### Override
