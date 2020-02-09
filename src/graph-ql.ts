@@ -26,16 +26,16 @@ function getGraphQlMocks(mocks: Mock[]) {
   >((result, mock) => {
     const { url, operations } = mock;
 
-    const operationsByName: Record<string, Operation> = result[url]
+    const operationsByNameAndType: Record<string, Operation> = result[url]
       ? result[url]
       : {};
 
     operations.forEach(operation => {
       // Always take the latest operation
-      operationsByName[operation.name] = operation;
+      operationsByNameAndType[`${operation.name}${operation.type}`] = operation;
     });
 
-    result[url] = operationsByName;
+    result[url] = operationsByNameAndType;
     return result;
   }, {});
 

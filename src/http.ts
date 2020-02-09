@@ -15,7 +15,7 @@ function getHttpMocks(mocks: Mock[]) {
   >((result, mock) => {
     const { url, method } = mock;
     // Always take the latest mock
-    result[`${url.toString()}${method}`] = mock;
+    result[`${String(url)}${method}`] = mock;
 
     return result;
   }, {});
