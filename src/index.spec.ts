@@ -801,6 +801,92 @@ describe('run', () => {
       });
     });
 
+    it('GraphQL operations on the same URL are merged', async () => {
+      const expectedResponse1 = { a: 1 };
+      const expectedResponse2 = { b: 2 };
+      const expectedResponse3 = { c: 3 };
+      const server = run({
+        default: [
+          {
+            url: '/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                name: 'Query1',
+                type: 'query',
+                response: expectedResponse1,
+              },
+              {
+                name: 'Query2',
+                type: 'query',
+                response: {},
+              },
+            ],
+          },
+        ],
+        scenarios: {
+          query2: [
+            {
+              url: '/graphql',
+              method: 'GRAPHQL',
+              operations: [
+                {
+                  name: 'Query2',
+                  type: 'query',
+                  response: expectedResponse2,
+                },
+              ],
+            },
+          ],
+          query3: [
+            {
+              url: '/graphql',
+              method: 'GRAPHQL',
+              operations: [
+                {
+                  name: 'Query3',
+                  type: 'query',
+                  response: expectedResponse3,
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        await rp.put('http://localhost:3000/modify-scenarios', {
+          body: { scenarios: ['query2', 'query3'] },
+          json: true,
+        });
+
+        const [response1, response2, response3] = await Promise.all([
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query1 { a }',
+            },
+          }),
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query2 { b }',
+            },
+          }),
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query3 { c }',
+            },
+          }),
+        ]);
+
+        expect(response1).toEqual(expectedResponse1);
+        expect(response2).toEqual(expectedResponse2);
+        expect(response3).toEqual(expectedResponse3);
+      });
+    });
+
     it('errors when attempting to enable 2 scenarios that are in the same group', async () => {
       const server = run({
         default: [
