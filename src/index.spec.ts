@@ -459,6 +459,64 @@ describe('run', () => {
       });
     });
 
+    it('GraphQL operations with the same name and different types allowed', async () => {
+      const expectedResponse1 = {
+        data: {
+          user: {
+            name: 'Felicity',
+          },
+        },
+      };
+      const expectedResponse2 = {
+        data: {
+          updateUser: {
+            name: 'Felicity Green',
+          },
+        },
+      };
+
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'User',
+                response: expectedResponse1,
+              },
+              {
+                type: 'mutation',
+                name: 'User',
+                response: expectedResponse2,
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        const [response1, response2] = await Promise.all([
+          rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: 'query User { user { name } }',
+            },
+          }),
+          rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: 'mutation User { updateUser { name } }',
+            },
+          }),
+        ]);
+
+        expect(response1).toEqual(expectedResponse1);
+        expect(response2).toEqual(expectedResponse2);
+      });
+    });
+
     it('allows empty responses', async () => {
       const server = run({
         default: [
