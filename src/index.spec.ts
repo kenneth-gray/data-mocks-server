@@ -426,6 +426,39 @@ describe('run', () => {
       });
     });
 
+    it('nothing is matched when GraphQL mutation is named like a query', async () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Query',
+                response: {},
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        expect.assertions(1);
+
+        try {
+          await rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: 'mutation Query { a }',
+            },
+          });
+        } catch ({ statusCode }) {
+          expect(statusCode).toEqual(404);
+        }
+      });
+    });
+
     it('allows empty responses', async () => {
       const server = run({
         default: [
@@ -646,7 +679,7 @@ describe('run', () => {
                   }),
                 },
                 {
-                  type: 'query',
+                  type: 'mutation',
                   name: 'UpdateUser',
                   response: ({ updateContext, variables: { name } }) => {
                     updateContext({ name });

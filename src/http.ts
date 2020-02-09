@@ -34,34 +34,25 @@ function applyHttpRoutes({
   getContext: () => Context;
   updateContext: UpdateContext;
 }) {
-  httpMocks.forEach(httpMock => {
-    const { method, url, ...rest } = httpMock;
-
+  httpMocks.forEach(({ method, url, ...rest }) => {
     const handler = createHandler({
       ...rest,
       updateContext,
+      getContext,
     });
 
-    switch (httpMock.method) {
+    switch (method) {
       case 'GET':
-        router.get(url, (req, res) => {
-          handler({ ...req, context: getContext() }, res);
-        });
+        router.get(url, handler);
         break;
       case 'POST':
-        router.post(url, (req, res) => {
-          handler({ ...req, context: getContext() }, res);
-        });
+        router.post(url, handler);
         break;
       case 'PUT':
-        router.put(url, (req, res) => {
-          handler({ ...req, context: getContext() }, res);
-        });
+        router.put(url, handler);
         break;
       case 'DELETE':
-        router.delete(url, (req, res) => {
-          handler({ ...req, context: getContext() }, res);
-        });
+        router.delete(url, handler);
         break;
       default:
         throw new Error(
