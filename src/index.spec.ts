@@ -426,6 +426,39 @@ describe('run', () => {
       });
     });
 
+    it('nothing is matched when GraphQL mutation is named like a query', async () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'Query',
+                response: {},
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        expect.assertions(1);
+
+        try {
+          await rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: 'mutation Query { a }',
+            },
+          });
+        } catch ({ statusCode }) {
+          expect(statusCode).toEqual(404);
+        }
+      });
+    });
+
     it('allows empty responses', async () => {
       const server = run({
         default: [
@@ -646,7 +679,7 @@ describe('run', () => {
                   }),
                 },
                 {
-                  type: 'query',
+                  type: 'mutation',
                   name: 'UpdateUser',
                   response: ({ updateContext, variables: { name } }) => {
                     updateContext({ name });
@@ -798,6 +831,92 @@ describe('run', () => {
 
         expect(response1).toEqual(expectedResponse1);
         expect(response2).toEqual(expectedResponse2);
+      });
+    });
+
+    it('GraphQL operations on the same URL are merged', async () => {
+      const expectedResponse1 = { a: 1 };
+      const expectedResponse2 = { b: 2 };
+      const expectedResponse3 = { c: 3 };
+      const server = run({
+        default: [
+          {
+            url: '/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                name: 'Query1',
+                type: 'query',
+                response: expectedResponse1,
+              },
+              {
+                name: 'Query2',
+                type: 'query',
+                response: {},
+              },
+            ],
+          },
+        ],
+        scenarios: {
+          query2: [
+            {
+              url: '/graphql',
+              method: 'GRAPHQL',
+              operations: [
+                {
+                  name: 'Query2',
+                  type: 'query',
+                  response: expectedResponse2,
+                },
+              ],
+            },
+          ],
+          query3: [
+            {
+              url: '/graphql',
+              method: 'GRAPHQL',
+              operations: [
+                {
+                  name: 'Query3',
+                  type: 'query',
+                  response: expectedResponse3,
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        await rp.put('http://localhost:3000/modify-scenarios', {
+          body: { scenarios: ['query2', 'query3'] },
+          json: true,
+        });
+
+        const [response1, response2, response3] = await Promise.all([
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query1 { a }',
+            },
+          }),
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query2 { b }',
+            },
+          }),
+          rp.post('http://localhost:3000/graphql', {
+            json: true,
+            body: {
+              query: 'query Query3 { c }',
+            },
+          }),
+        ]);
+
+        expect(response1).toEqual(expectedResponse1);
+        expect(response2).toEqual(expectedResponse2);
+        expect(response3).toEqual(expectedResponse3);
       });
     });
 

@@ -6,6 +6,7 @@ import {
   UpdateContext,
   ResponseFunction,
   Override,
+  Context,
 } from './types';
 
 export { createHandler };
@@ -16,8 +17,10 @@ function createHandler<TInput, TResponse>({
   responseHeaders,
   responseDelay = 0,
   updateContext,
+  getContext,
 }: ResponseProps<MockResponse<TInput, TResponse>> & {
   updateContext: UpdateContext;
+  getContext: () => Context;
 }) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
@@ -25,6 +28,7 @@ function createHandler<TInput, TResponse>({
         ? await ((response as unknown) as ResponseFunction<TInput, TResponse>)({
             ...req,
             updateContext,
+            context: getContext(),
           })
         : response;
 

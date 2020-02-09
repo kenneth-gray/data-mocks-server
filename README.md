@@ -176,7 +176,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### GraphQlResponseFunction
 
-> `function({ operationName, query, variables }): response | Promise<response>`
+> `function({ operationName, query, variables, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 

@@ -8,13 +8,10 @@ export { getGraphQlMocks, applyGraphQlRoutes };
 
 type GraphQlHandler = (
   req: {
-    body: Request['body'] & {
-      operationName: string;
-      variables: Record<string, any>;
-      query: string;
-    };
-    params: Request['params'];
-    query: Request['query'];
+    operationType: 'query' | 'mutation';
+    operationName: string;
+    variables: Record<string, any>;
+    query: string;
   },
   res: Response,
 ) => boolean;
@@ -62,15 +59,7 @@ function applyGraphQlRoutes({
   getContext: () => Context;
   updateContext: UpdateContext;
 }) {
-  const graphQlUrlToHandlers = graphQlMocks.reduce<
-    Record<
-      string,
-      {
-        queries: GraphQlHandler[];
-        mutations: GraphQlHandler[];
-      }
-    >
-  >((result, { url, operations }) => {
+  graphQlMocks.forEach(({ url, operations }) => {
     const queries = operations
       .filter(({ type }) => type === 'query')
       .map(operation =>
@@ -83,46 +72,31 @@ function applyGraphQlRoutes({
         createGraphQlHandler({ ...operation, updateContext, getContext }),
       );
 
-    const queriesAndMutations = result[url]
-      ? result[url]
-      : { queries: [], mutations: [] };
-
-    queriesAndMutations.queries = queriesAndMutations.queries.concat(queries);
-    queriesAndMutations.mutations = queriesAndMutations.mutations.concat(
-      mutations,
-    );
-
-    result[url] = queriesAndMutations;
-
-    return result;
-  }, {});
-
-  Object.entries(graphQlUrlToHandlers).forEach(
-    ([url, { queries, mutations }]) => {
-      router.get(url, createGraphQlRequestHandler(queries));
-      router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
-    },
-  );
+    router.get(url, createGraphQlRequestHandler(queries));
+    router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
+  });
 }
 
 function createGraphQlHandler({
   name: operationNameToCheck,
-  getContext,
+  type: operationTypeToCheck,
   ...rest
 }: Operation & {
   updateContext: UpdateContext;
   getContext: () => Context;
-}) {
+}): GraphQlHandler {
   const handler = createHandler(rest);
 
-  const graphQlHandler: GraphQlHandler = (req, res) => {
-    if (operationNameToCheck === req.body.operationName) {
+  return ({ operationName, query, variables, operationType }, res) => {
+    if (
+      operationNameToCheck === operationName &&
+      operationTypeToCheck === operationType
+    ) {
       handler(
         {
-          operationName: req.body.operationName,
-          query: req.body.query,
-          variables: req.body.variables,
-          context: getContext(),
+          operationName,
+          query,
+          variables,
         },
         res,
       );
@@ -132,8 +106,6 @@ function createGraphQlHandler({
 
     return false;
   };
-
-  return graphQlHandler;
 }
 
 function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
@@ -153,6 +125,8 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
       return;
     }
 
+    const operationType = graphqlAst.definitions[0].operation;
+
     let variables = req.body.variables;
     if (variables === undefined && req.query.variables) {
       try {
@@ -171,9 +145,10 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     for (const handler of handlers) {
       const responseHandled = handler(
         {
-          body: { ...req.body, operationName, variables, query },
-          params: req.params,
-          query: req.query,
+          operationName,
+          variables,
+          query,
+          operationType,
         },
         res,
       );

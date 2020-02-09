@@ -24,6 +24,7 @@ export type Override<TResponse> = {
 export type ResponseFunction<TInput, TResponse> = (
   input: TInput & {
     updateContext: UpdateContext;
+    context: Context;
   },
 ) => TResponse | Override<TResponse> | Promise<TResponse | Override<TResponse>>;
 
@@ -49,7 +50,6 @@ export type HttpMock = {
       query: Record<string, string | Array<string>>;
       body: Record<string, any>;
       params: Record<string, string>;
-      context: Context;
     },
     HttpResponse
   >
@@ -69,7 +69,6 @@ export type Operation = {
       operationName: string;
       query: string;
       variables: Record<string, any>;
-      context: Context;
     },
     GraphQlResponse | HttpResponse
   >
