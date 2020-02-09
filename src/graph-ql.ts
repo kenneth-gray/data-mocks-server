@@ -62,15 +62,7 @@ function applyGraphQlRoutes({
   getContext: () => Context;
   updateContext: UpdateContext;
 }) {
-  const graphQlUrlToHandlers = graphQlMocks.reduce<
-    Record<
-      string,
-      {
-        queries: GraphQlHandler[];
-        mutations: GraphQlHandler[];
-      }
-    >
-  >((result, { url, operations }) => {
+  graphQlMocks.forEach(({ url, operations }) => {
     const queries = operations
       .filter(({ type }) => type === 'query')
       .map(operation =>
@@ -83,26 +75,9 @@ function applyGraphQlRoutes({
         createGraphQlHandler({ ...operation, updateContext, getContext }),
       );
 
-    const queriesAndMutations = result[url]
-      ? result[url]
-      : { queries: [], mutations: [] };
-
-    queriesAndMutations.queries = queriesAndMutations.queries.concat(queries);
-    queriesAndMutations.mutations = queriesAndMutations.mutations.concat(
-      mutations,
-    );
-
-    result[url] = queriesAndMutations;
-
-    return result;
-  }, {});
-
-  Object.entries(graphQlUrlToHandlers).forEach(
-    ([url, { queries, mutations }]) => {
-      router.get(url, createGraphQlRequestHandler(queries));
-      router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
-    },
-  );
+    router.get(url, createGraphQlRequestHandler(queries));
+    router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
+  });
 }
 
 function createGraphQlHandler({
