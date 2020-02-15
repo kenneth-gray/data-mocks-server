@@ -1,15 +1,22 @@
 # Data Mocks Server
 
-This package was originally a port of https://github.com/ovotech/data-mocks that prefers spinning up an express server instead of mocking out `fetch` and `XHR` operations. Thanks goes to [grug](https://github.com/grug) for his idea and implementation.
+A simple, customiseable HTTP server that can be used to provide mock data for APIs when developing applications.
+
+Supports GET, PUT, POST and DELETE operations and also enables mocking of GraphQL endpoints when operations have an operation name provided.
+
+Quickly switch between different scenarios by using the provided UI.
 
 ## Table of contents
 
 - [Installation](#installation)
 - [Example usage](#example-usage)
+- [Responses](#responses)
+  - [Context](#context)
+- [Scenarios](#scenarios)
 - [API](#api)
   - [run](#run)
     - [default](#default)
-    - [scenarios](#scenarios)
+    - [scenarios](#scenarios-1)
     - [options](#options)
 - [Types](#types)
   - [Mock](#mock)
@@ -21,6 +28,7 @@ This package was originally a port of https://github.com/ovotech/data-mocks that
   - [GraphQlResponse](#graphqlresponse)
   - [GraphQlResponseFunction](#graphqlresponsefunction)
   - [Override](#override)
+- [Thanks](#thanks)
 
 ## Installation
 
@@ -56,6 +64,143 @@ run({
 Calls to `http://localhost:3000/api/test-me` will start by returning `{ blue: 'yoyo' }`.
 
 Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The default response will always be included unless a scenario overrides it. In this case enabling `cheese` will modify `/api/test-me` so that it returns `{ blue: 'cheese' }`.
+
+## Responses
+
+A simple use case would be to respond with the same JSON every time:
+
+```javascript
+run({
+  default: [
+    {
+      url: '/api/user/:id',
+      method: 'GET',
+      response: { name: 'Alice' },
+    },
+  ],
+});
+```
+
+However, responses can also use functions (or async functions) to gain access to certain properties.
+
+For HTTP mocks, `params`, `query` and `body` are available:
+
+```javascript
+run({
+  default: [
+    {
+      url: '/api/users/:id',
+      method: 'GET',
+      response: ({ params: { id }, query: { filter } }) => {
+        // /api/users/abc123?filter=100
+        // id: 'abc123'
+        // filter: '100'
+
+        return {
+          id,
+          name: 'Ben',
+        };
+      },
+    },
+    {
+      url: '/api/users',
+      method: 'POST',
+      response: async ({ body: { name } }) => {
+        const id = await createUser(name);
+
+        return {
+          id,
+          name,
+        };
+      },
+    },
+  ],
+});
+```
+
+For GraphQL mocks, `variables` are available:
+
+```javascript
+run({
+  default: [
+    {
+      url: '/api/graphql',
+      method: 'GRAPHQL',
+      operations: [
+        {
+          type: 'query',
+          name: 'GetUser',
+          response: ({ variables: { id } }) => {
+            return {
+              data: {
+                user: {
+                  id,
+                  name: 'Charlotte',
+                },
+              },
+            };
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Responses can also customise the following:
+- The status code: `responseCode` (_number_).
+- The delay in milliseconds before returning the response: `responseDelay` (_number_).
+- What the response headers should contain: `responseHeaders` (_object_).
+
+See [Override](#override) for more fine grained response control based on what was submitted to an endpoint.
+
+### Context
+
+Sometimes you want to be able to simulate data being modified. In these instances, context can help. It allows you to store and update an object of properties.
+
+```javascript
+run({
+  default: {
+    context: { name: 'Dennis' },
+    mocks: [
+      {
+        url: '/api/users/:id',
+        method: 'GET',
+        response: ({ params: { id }, context: { name } }) => {
+          return {
+            id,
+            // Use name from context
+            name,
+          };
+        },
+      },
+      {
+        url: '/api/users/:id',
+        method: 'PUT',
+        response: ({ body: { name }, updateContext }) => {
+          // Update name in context
+          updateContext({ name });
+
+          return {
+            id,
+            name,
+          };
+        },
+      },
+    ],
+  },
+});
+```
+
+| API request | Response |
+|-------------|----------|
+| `GET` `/api/users/123` | `{ id: '123', name: 'Dennis' }` |
+| `PUT` `/api/users/123` `{ name: 'Eleanor' }` | `{ id: '123', name: 'Eleanor' }` |
+| `GET` `/api/users/123` | `{ id: '123', name: 'Eleanor' }` |
+
+## Scenarios
+
+TODO:
 
 ## API
 
@@ -232,3 +377,15 @@ const mock = {
   },
 }
 ```
+
+## Thanks
+
+This package was originally a port of https://github.com/ovotech/data-mocks. Thanks goes to [grug](https://github.com/grug) for his idea and implementation.
+
+## Differences with data-mocks
+
+- Uses an HTTP server instead of mocking out `fetch` and `XHR` operations.
+- Multiple scenarios can be enabled at a time.
+- A UI that allows you to set and reset scenarios.
+- An API that allows you to set and reset scenarios (useful for testing).
+- Ability to create more dynamic responses thanks to response functions and context.
