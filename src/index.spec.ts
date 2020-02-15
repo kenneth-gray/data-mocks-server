@@ -287,7 +287,7 @@ describe('run', () => {
 
       await serverTest(server, async () => {
         const query = `
-          {
+          query ${operationName} {
             firstName
           }
         `;
@@ -387,6 +387,7 @@ describe('run', () => {
     });
 
     it('supports GraphQL query over POST when operationName is provided', async () => {
+      const operationName = 'Person';
       const expectedResponse = {
         data: {
           firstName: 'Alan',
@@ -400,7 +401,7 @@ describe('run', () => {
             operations: [
               {
                 type: 'query',
-                name: 'Person',
+                name: operationName,
                 response: expectedResponse,
               },
             ],
@@ -410,7 +411,7 @@ describe('run', () => {
 
       await serverTest(server, async () => {
         const query = `
-          {
+          query ${operationName} {
             firstName
           }
         `;
@@ -418,7 +419,7 @@ describe('run', () => {
           json: true,
           body: {
             query,
-            operationName: 'Person',
+            operationName,
           },
         });
 
@@ -514,6 +515,180 @@ describe('run', () => {
 
         expect(response1).toEqual(expectedResponse1);
         expect(response2).toEqual(expectedResponse2);
+      });
+    });
+
+    it('GraphQL operations work when multiple queries and fragments are defined', async () => {
+      const expectedResponse = {
+        data: {
+          user: {
+            name: 'Gary',
+          },
+        },
+      };
+
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'GetUser',
+                response: expectedResponse,
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        const response = await rp.post('http://localhost:3000/api/graphql', {
+          json: true,
+          body: {
+            query: `
+              fragment userDetails on User {
+                name
+              }
+
+              query GetAccount {
+                account {
+                  id
+                }
+              }
+
+              query GetUser {
+                user {
+                  ...userDetails
+                }
+              }
+            `,
+            operationName: 'GetUser',
+          },
+        });
+
+        expect(response).toEqual(expectedResponse);
+      });
+    });
+
+    it('GraphQL errors when multiple queries exist and no operationName is sent', async () => {
+      const server = run({
+        default: [
+          {
+            url: '/api/graphql',
+            method: 'GRAPHQL',
+            operations: [
+              {
+                type: 'query',
+                name: 'GetAccount',
+                response: {
+                  data: {
+                    account: {
+                      id: '111222',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        expect.assertions(1);
+        try {
+          await rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: `
+                query GetAccount {
+                  account {
+                    id
+                  }
+                }
+
+                query GetUser {
+                  user {
+                    name
+                  }
+                }
+              `,
+            },
+          });
+        } catch ({ statusCode }) {
+          expect(statusCode).toEqual(400);
+        }
+      });
+    });
+
+    it('GraphQL errors when query has no operationName', async () => {
+      const server = run({
+        default: [],
+      });
+
+      await serverTest(server, async () => {
+        expect.assertions(1);
+        try {
+          await rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: `
+                {
+                  user {
+                    name
+                  }
+                }
+              `,
+            },
+          });
+        } catch ({ statusCode }) {
+          expect(statusCode).toEqual(404);
+        }
+      });
+    });
+
+    it('GraphQL errors when supplied operationName does not exist in query', async () => {
+      const server = run({
+        default: [
+          {
+            method: 'GRAPHQL',
+            url: '/api/graphql',
+            operations: [
+              {
+                type: 'query',
+                name: 'GetAccount',
+                response: { data: { account: { id: '333444' } } },
+              },
+              {
+                type: 'query',
+                name: 'GetUser',
+                response: { data: { user: { name: 'Holly' } } },
+              },
+            ],
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        expect.assertions(1);
+        try {
+          await rp.post('http://localhost:3000/api/graphql', {
+            json: true,
+            body: {
+              query: `
+                query GetUser {
+                  user {
+                    name
+                  }
+                }
+              `,
+              operationName: 'GetAccount',
+            },
+          });
+        } catch ({ statusCode }) {
+          expect(statusCode).toEqual(400);
+        }
       });
     });
 

@@ -87,10 +87,10 @@ function createGraphQlHandler({
 }): GraphQlHandler {
   const handler = createHandler(rest);
 
-  return ({ operationName, query, variables, operationType }, res) => {
+  return ({ operationType, operationName, query, variables }, res) => {
     if (
-      operationNameToCheck === operationName &&
-      operationTypeToCheck === operationType
+      operationType === operationTypeToCheck &&
+      operationName === operationNameToCheck
     ) {
       handler(
         {
@@ -125,7 +125,46 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
       return;
     }
 
-    const operationType = graphqlAst.definitions[0].operation;
+    const operationTypesAndNames = (graphqlAst.definitions as Array<{
+      kind: string;
+      operation: 'query' | 'mutation';
+      name?: { value: string };
+    }>)
+      .filter(({ kind }) => kind === 'OperationDefinition')
+      .map(({ operation, name }) => ({
+        type: operation,
+        name: name && name.value,
+      }));
+
+    if (
+      operationTypesAndNames.length > 1 &&
+      !req.body.operationName &&
+      !req.query.operationName
+    ) {
+      res.status(400).json({
+        message: `query "${query}" is not a valid GraphQL query`,
+      });
+      return;
+    }
+
+    const operationName: string =
+      req.body.operationName ||
+      req.query.operationName ||
+      operationTypesAndNames[0].name ||
+      '';
+
+    const operationTypeAndName = operationTypesAndNames.find(
+      ({ name }) => name === operationName,
+    );
+
+    if (!operationTypeAndName) {
+      res.status(400).json({
+        message: `operation name "${operationName}" does not exist in GraphQL query`,
+      });
+      return;
+    }
+
+    const operationType = operationTypeAndName.type;
 
     let variables = req.body.variables;
     if (variables === undefined && req.query.variables) {
@@ -135,20 +174,13 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     }
     variables = variables || {};
 
-    let operationName = req.body.operationName || req.query.operationName || '';
-    if (!operationName && query) {
-      try {
-        operationName = graphqlAst.definitions[0].name.value;
-      } catch (error) {}
-    }
-
     for (const handler of handlers) {
       const responseHandled = handler(
         {
+          operationType,
           operationName,
           variables,
           query,
-          operationType,
         },
         res,
       );
