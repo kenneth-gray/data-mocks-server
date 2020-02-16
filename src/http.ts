@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 
 import { createHandler } from './create-handler';
 import { Mock, HttpMock, Context, UpdateContext } from './types';
@@ -40,19 +40,21 @@ function applyHttpRoutes({
       updateContext,
       getContext,
     });
+    const requestHandler: RequestHandler = ({ body, query, params }, res) =>
+      handler({ body, query, params }, res);
 
     switch (method) {
       case 'GET':
-        router.get(url, handler);
+        router.get(url, requestHandler);
         break;
       case 'POST':
-        router.post(url, handler);
+        router.post(url, requestHandler);
         break;
       case 'PUT':
-        router.put(url, handler);
+        router.put(url, requestHandler);
         break;
       case 'DELETE':
-        router.delete(url, handler);
+        router.delete(url, requestHandler);
         break;
       default:
         throw new Error(

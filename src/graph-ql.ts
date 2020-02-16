@@ -11,7 +11,6 @@ type GraphQlHandler = (
     operationType: 'query' | 'mutation';
     operationName: string;
     variables: Record<string, any>;
-    query: string;
   },
   res: Response,
 ) => boolean;
@@ -87,15 +86,13 @@ function createGraphQlHandler({
 }): GraphQlHandler {
   const handler = createHandler(rest);
 
-  return ({ operationType, operationName, query, variables }, res) => {
+  return ({ operationType, operationName, variables }, res) => {
     if (
       operationType === operationTypeToCheck &&
       operationName === operationNameToCheck
     ) {
       handler(
         {
-          operationName,
-          query,
           variables,
         },
         res,
@@ -180,7 +177,6 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
           operationType,
           operationName,
           variables,
-          query,
         },
         res,
       );

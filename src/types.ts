@@ -66,8 +66,6 @@ export type Operation = {
 } & ResponseProps<
   MockResponse<
     {
-      operationName: string;
-      query: string;
       variables: Record<string, any>;
     },
     GraphQlResponse | HttpResponse

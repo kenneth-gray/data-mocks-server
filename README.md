@@ -176,14 +176,12 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### GraphQlResponseFunction
 
-> `function({ operationName, query, variables, context, updateContext }): response | Promise<response>`
+> `function({ variables, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| operationName | `string` | `''` | operationName sent by client. |
-| query | `string` | `''` | GraphQL query. |
 | variables | `object` | `{}` | variables sent by client. |
 | context | `object` | `{}` | Data stored across API calls. |
 | updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
