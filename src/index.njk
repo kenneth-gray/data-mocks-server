@@ -21,6 +21,12 @@
         {% endif %}
       {% endif %}
       <form class="stack-1" method="POST" action="{{uiPath}}">
+        <div class="button-group">
+            <div>
+              <button type="submit" name="button" value="modify">Modify scenarios</button>
+              <button type="submit" name="button" value="reset">Reset scenarios</button>
+            </div>
+          </div>
         <legend><h1>Scenarios</h1></legend>
         <p>
           <a href="{{uiPath}}">Refresh page</a>
