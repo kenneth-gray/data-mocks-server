@@ -64,11 +64,9 @@ run({
           {
             type: 'query',
             name: 'Function',
-            response: async ({ operationName, query, variables }) => {
+            response: async ({ variables }) => {
               return {
                 data: {
-                  operationName,
-                  query,
                   variables,
                 },
               };
