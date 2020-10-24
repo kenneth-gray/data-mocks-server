@@ -892,6 +892,61 @@ describe('run', () => {
       });
     });
 
+    it('partial context can be set using a function', async () => {
+      const name = 'Betty';
+      const initialAge = 40;
+      const intervalDelayMs = 200;
+      const intervalTickCount = 5;
+      const timeoutDelayMs = intervalDelayMs * intervalTickCount + 100;
+
+      const server = run({
+        default: {
+          context: { age: initialAge, name },
+          mocks: [
+            {
+              url: '/info',
+              method: 'GET',
+              response: ({ context }) => context,
+            },
+            {
+              url: '/user',
+              method: 'POST',
+              response: ({ updateContext }) => {
+                const interval = setInterval(() => {
+                  updateContext(({ age }: any) => ({ age: age + 1 }));
+                }, intervalDelayMs);
+                setTimeout(() => {
+                  clearInterval(interval);
+                }, timeoutDelayMs);
+
+                return null;
+              },
+            },
+          ],
+        },
+      });
+
+      await serverTest(server, async () => {
+        const info1 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info1).toEqual({ name, age: initialAge });
+
+        await rp.post('http://localhost:3000/user');
+
+        await new Promise(resolve => {
+          setTimeout(() => {
+            resolve();
+          }, timeoutDelayMs + 100);
+        });
+
+        const info2 = await rp.get('http://localhost:3000/info', {
+          json: true,
+        });
+        expect(info2).toEqual({ name, age: initialAge + intervalTickCount });
+      });
+    });
+
     it('context works for GraphQL requests', async () => {
       const initialName = 'Alice';
       const updatedName = 'Bob';

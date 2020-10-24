@@ -89,4 +89,6 @@ export type Options = {
 
 export type Context = Record<string, any>;
 
-export type UpdateContext = (partialContext: Context) => Context;
+export type UpdateContext = (
+  partialContext: Context | ((context: Context) => Context),
+) => Context;

@@ -126,8 +126,15 @@ function createRouter({
 
   return router;
 
-  function updateContext(partialContext: Context) {
-    context = { ...context, ...partialContext };
+  function updateContext(
+    partialContext: Context | ((context: Context) => Context),
+  ) {
+    context = {
+      ...context,
+      ...(typeof partialContext === 'function'
+        ? partialContext(context)
+        : partialContext),
+    };
 
     return context;
   }
