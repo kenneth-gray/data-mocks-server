@@ -132,7 +132,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### HttpResponseFunction
 
-> `function({ query, body, params, context, updateContext, getContext }): response | Promise<response>`
+> `function({ query, body, params, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -142,8 +142,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | body | `object` | `{}` | body object as defined by `express`. |
 | params | `object` | `{}` | params object as defined by `express`. |
 | context | `object` | `{}` | Data stored across API calls. |
-| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
-| getContext | `Function` | `() => context` | Used to get the latest context. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`).  |
 | response | `undefined` / `Response` / `Override` | _required_ | [Response](#response), [Override](#override). |
 
 ### GraphQlMock
@@ -179,7 +178,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### GraphQlResponseFunction
 
-> `function({ variables, context, updateContext, getContext }): response | Promise<response>`
+> `function({ variables, context, updateContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -187,8 +186,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 |----------|------|---------|-------------|
 | variables | `object` | `{}` | variables sent by client. |
 | context | `object` | `{}` | Data stored across API calls. |
-| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
-| getContext | `Function` | `() => context` | Used to get the latest context. |
+| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`).  |
 | response | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_ | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override). |
 
 ### Override
