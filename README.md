@@ -4,23 +4,25 @@ This package was originally a port of https://github.com/ovotech/data-mocks that
 
 ## Table of contents
 
-- [Installation](#installation)
-- [Example usage](#example-usage)
-- [API](#api)
-  - [run](#run)
-    - [default](#default)
-    - [scenarios](#scenarios)
-    - [options](#options)
-- [Types](#types)
-  - [Mock](#mock)
-  - [HttpMock](#httpmock)
-  - [Response](#response)
-  - [HttpResponseFunction](#httpresponsefunction)
-  - [GraphQlMock](#graphqlmock)
-    - [Operation](#operation)
-  - [GraphQlResponse](#graphqlresponse)
-  - [GraphQlResponseFunction](#graphqlresponsefunction)
-  - [Override](#override)
+- [Data Mocks Server](#data-mocks-server)
+  - [Table of contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Example usage](#example-usage)
+  - [API](#api)
+    - [run](#run)
+      - [default](#default)
+      - [scenarios](#scenarios)
+      - [options](#options)
+  - [Types](#types)
+    - [Mock](#mock)
+    - [HttpMock](#httpmock)
+    - [Response](#response)
+    - [HttpResponseFunction](#httpresponsefunction)
+    - [GraphQlMock](#graphqlmock)
+      - [Operation](#operation)
+    - [GraphQlResponse](#graphqlresponse)
+    - [GraphQlResponseFunction](#graphqlresponsefunction)
+    - [Override](#override)
 
 ## Installation
 
@@ -130,7 +132,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### HttpResponseFunction
 
-> `function({ query, body, params, context, updateContext }): response | Promise<response>`
+> `function({ query, body, params, context, updateContext, getContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -141,6 +143,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | params | `object` | `{}` | params object as defined by `express`. |
 | context | `object` | `{}` | Data stored across API calls. |
 | updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
+| getContext | `Function` | `() => context` | Used to get the latest context. |
 | response | `undefined` / `Response` / `Override` | _required_ | [Response](#response), [Override](#override). |
 
 ### GraphQlMock
@@ -176,7 +179,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### GraphQlResponseFunction
 
-> `function({ variables, context, updateContext }): response | Promise<response>`
+> `function({ variables, context, updateContext, getContext }): response | Promise<response>`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -185,6 +188,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | variables | `object` | `{}` | variables sent by client. |
 | context | `object` | `{}` | Data stored across API calls. |
 | updateContext | `Function` | `partialContext => updatedContext` | Used to update context. |
+| getContext | `Function` | `() => context` | Used to get the latest context. |
 | response | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_ | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override). |
 
 ### Override
