@@ -37,6 +37,7 @@ describe('run', () => {
       const expectedPostResponse = { post: 'mail' };
       const expectedPutResponse = { put: 'it down' };
       const expectedDeleteResponse = { delete: 'program' };
+      const expectedPatchResponse = { patch: 'it' };
 
       const server = run({
         default: [
@@ -60,6 +61,11 @@ describe('run', () => {
             method: 'DELETE',
             response: expectedDeleteResponse,
           },
+          {
+            url: '/test-me',
+            method: 'PATCH',
+            response: expectedPatchResponse,
+          },
         ],
       });
 
@@ -69,17 +75,20 @@ describe('run', () => {
           postResponse,
           putResponse,
           deleteResponse,
+          patchResponse,
         ] = await Promise.all([
           rp.get('http://localhost:3000/test-me', { json: true }),
           rp.post('http://localhost:3000/test-me', { json: true }),
           rp.put('http://localhost:3000/test-me', { json: true }),
           rp.delete('http://localhost:3000/test-me', { json: true }),
+          rp.patch('http://localhost:3000/test-me', { json: true }),
         ]);
 
         expect(getResponse).toEqual(expectedGetResponse);
         expect(postResponse).toEqual(expectedPostResponse);
         expect(putResponse).toEqual(expectedPutResponse);
         expect(deleteResponse).toEqual(expectedDeleteResponse);
+        expect(patchResponse).toEqual(expectedPatchResponse);
       });
     });
 

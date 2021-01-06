@@ -120,7 +120,7 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | url | `string` / `RegExp` | _required_ | Path of endpoint. Must start with `/`. |
-| method | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` | _required_ | HTTP method of endpoint. |
+| method | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` / `'PATCH'` | _required_ | HTTP method of endpoint. |
 | response | `undefined` / `Response` / `HttpResponseFunction` | `undefined` | [Response](#response), [HttpResponseFunction](#httpresponsefunction). |
 | responseCode | `number` | `200` | HTTP status code for response. |
 | responseHeaders | `object` / `undefined` | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |

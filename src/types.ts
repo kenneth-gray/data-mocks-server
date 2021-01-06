@@ -15,7 +15,7 @@ export type Scenarios = {
       };
 };
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export type Override<TResponse> = {
   __override: ResponseProps<TResponse>;
