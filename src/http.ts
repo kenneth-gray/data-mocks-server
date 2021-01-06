@@ -56,6 +56,9 @@ function applyHttpRoutes({
       case 'DELETE':
         router.delete(url, requestHandler);
         break;
+      case 'PATCH':
+        router.patch(url, requestHandler);
+        break;
       default:
         throw new Error(
           `Unrecognised HTTP method ${method} - please check your mock configuration`,
