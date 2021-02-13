@@ -61,7 +61,6 @@ function updateUi({
 
 type Groups = Array<{
   name: string;
-  noneChecked: boolean;
   scenarios: Array<{
     name: string;
     checked: boolean;
@@ -98,13 +97,8 @@ function getPageVariables(
 
   const groups = Object.entries(groupedScenarios).reduce<Groups>(
     (result, [name, groupScenarios]) => {
-      let noneChecked = true;
       const scenarios = groupScenarios.map(scenario => {
         const checked = selectedScenarios.includes(scenario);
-        if (checked) {
-          noneChecked = false;
-        }
-
         return {
           name: scenario,
           checked,
@@ -112,7 +106,6 @@ function getPageVariables(
       });
 
       result.push({
-        noneChecked,
         name,
         scenarios,
       });
