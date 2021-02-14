@@ -1,10 +1,16 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import gql from 'graphql-tag';
 
 import { createHandler } from './create-handler';
-import { GraphQlMock, Operation, Mock, UpdateContext, Context } from './types';
+import {
+  GraphQlMock,
+  Operation,
+  Mock,
+  UpdateContext,
+  GetContext,
+} from './types';
 
-export { getGraphQlMocks, applyGraphQlRoutes };
+export { getGraphQlMocks, getGraphQlMock, createGraphQlRequestHandler };
 
 type GraphQlHandler = (
   req: {
@@ -47,42 +53,13 @@ function getGraphQlMocks(mocks: Mock[]) {
   ) as GraphQlMock[];
 }
 
-function applyGraphQlRoutes({
-  router,
-  graphQlMocks,
-  getContext,
-  updateContext,
-}: {
-  router: Router;
-  graphQlMocks: GraphQlMock[];
-  getContext: () => Context;
-  updateContext: UpdateContext;
-}) {
-  graphQlMocks.forEach(({ url, operations }) => {
-    const queries = operations
-      .filter(({ type }) => type === 'query')
-      .map(operation =>
-        createGraphQlHandler({ ...operation, updateContext, getContext }),
-      );
-
-    const mutations = operations
-      .filter(({ type }) => type === 'mutation')
-      .map(operation =>
-        createGraphQlHandler({ ...operation, updateContext, getContext }),
-      );
-
-    router.get(url, createGraphQlRequestHandler(queries));
-    router.post(url, createGraphQlRequestHandler(queries.concat(mutations)));
-  });
-}
-
 function createGraphQlHandler({
   name: operationNameToCheck,
   type: operationTypeToCheck,
   ...rest
 }: Operation & {
   updateContext: UpdateContext;
-  getContext: () => Context;
+  getContext: GetContext;
 }): GraphQlHandler {
   const handler = createHandler(rest);
 
@@ -105,7 +82,7 @@ function createGraphQlHandler({
   };
 }
 
-function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
+function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const query =
       req.headers['content-type'] === 'application/graphql'
@@ -186,6 +163,97 @@ function createGraphQlRequestHandler(handlers: GraphQlHandler[]) {
       }
     }
 
+    next();
+  };
+}
+
+function getGraphQlMock(req: Request, graphqlMocks: GraphQlMock[]) {
+  return graphqlMocks.find(graphQlMock => graphQlMock.url === req.path) || null;
+}
+
+function getQueries({
+  graphQlMock,
+  updateContext,
+  getContext,
+}: {
+  graphQlMock: GraphQlMock;
+  updateContext: UpdateContext;
+  getContext: GetContext;
+}) {
+  return graphQlMock.operations
+    .filter(({ type }) => type === 'query')
+    .map(operation =>
+      createGraphQlHandler({
+        ...operation,
+        updateContext,
+        getContext,
+      }),
+    );
+}
+
+function getMutations({
+  graphQlMock,
+  updateContext,
+  getContext,
+}: {
+  graphQlMock: GraphQlMock;
+  updateContext: UpdateContext;
+  getContext: GetContext;
+}) {
+  return graphQlMock.operations
+    .filter(({ type }) => type === 'mutation')
+    .map(operation =>
+      createGraphQlHandler({
+        ...operation,
+        updateContext,
+        getContext,
+      }),
+    );
+}
+
+function createGraphQlRequestHandler({
+  graphQlMock,
+  updateContext,
+  getContext,
+}: {
+  graphQlMock: GraphQlMock;
+  updateContext: UpdateContext;
+  getContext: GetContext;
+}) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET') {
+      const queries = getQueries({
+        graphQlMock,
+        updateContext,
+        getContext,
+      });
+
+      const requestHandler = createInternalGraphQlRequestHandler(queries);
+      requestHandler(req, res, next);
+
+      return;
+    }
+
+    if (req.method === 'POST') {
+      const queries = getQueries({
+        graphQlMock,
+        updateContext,
+        getContext,
+      });
+      const mutations = getMutations({
+        graphQlMock,
+        updateContext,
+        getContext,
+      });
+      const requestHandler = createInternalGraphQlRequestHandler(
+        queries.concat(mutations),
+      );
+      requestHandler(req, res, next);
+
+      return;
+    }
+
+    // req.method doesn't make sense for GraphQL - default 404 from express
     next();
   };
 }

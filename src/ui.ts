@@ -1,17 +1,20 @@
-import { Scenarios } from './types';
-import { RequestHandler } from 'express';
+import { ScenarioMap } from './types';
+import { RequestHandler, Request, Response } from 'express';
 
 export { getUi, updateUi };
 
 function getUi({
-  scenarioMocks,
-  getScenarios,
+  scenarioMap,
+  getScenarioNames,
 }: {
-  scenarioMocks: Scenarios;
-  getScenarios: () => string[];
+  scenarioMap: ScenarioMap;
+  getScenarioNames: (req: Request, res: Response) => string[];
 }): RequestHandler {
-  return (_, res) => {
-    const { groups, other } = getPageVariables(scenarioMocks, getScenarios());
+  return (req: Request, res: Response) => {
+    const { groups, other } = getPageVariables(
+      scenarioMap,
+      getScenarioNames(req, res),
+    );
 
     res.render('index.njk', {
       groups,
@@ -23,15 +26,18 @@ function getUi({
 function updateUi({
   groupNames,
   scenarioNames,
-  scenarioMocks,
-  updateScenarios,
+  scenarioMap,
+  updateScenariosAndContext,
 }: {
   groupNames: string[];
   scenarioNames: string[];
-  scenarioMocks: Scenarios;
-  updateScenarios: (scenarios: string[]) => void;
+  scenarioMap: ScenarioMap;
+  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
 }): RequestHandler {
-  return ({ body: { scenarios: scenariosBody, button, ...rest } }, res) => {
+  return (req: Request, res: Response) => {
+    const {
+      body: { scenarios: scenariosBody, button, ...rest },
+    } = req;
     let updatedScenarios: string[] = [];
 
     if (button === 'modify') {
@@ -47,9 +53,9 @@ function updateUi({
         .filter(scenarioName => scenarioNames.includes(scenarioName));
     }
 
-    updateScenarios(updatedScenarios);
+    updateScenariosAndContext(res, updatedScenarios);
 
-    const { groups, other } = getPageVariables(scenarioMocks, updatedScenarios);
+    const { groups, other } = getPageVariables(scenarioMap, updatedScenarios);
 
     res.render('index.njk', {
       groups,
@@ -69,10 +75,10 @@ type Groups = Array<{
 }>;
 
 function getPageVariables(
-  scenarioMocks: Scenarios,
+  scenarioMap: ScenarioMap,
   selectedScenarios: string[],
 ) {
-  const { other, ...groupedScenarios } = Object.entries(scenarioMocks).reduce<{
+  const { other, ...groupedScenarios } = Object.entries(scenarioMap).reduce<{
     other: string[];
     [key: string]: string[];
   }>(
