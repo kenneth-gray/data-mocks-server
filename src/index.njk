@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="google" content="notranslate">
+    <meta http-equiv="Content-Language" content="en">
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{% if updatedScenarios %}Updated - {% endif %}Scenarios - Data Mocks Server</title>
     <link rel="stylesheet" href="{{uiPath}}index.css" />
@@ -10,9 +12,9 @@
     <main>
       {% if updatedScenarios %}
         {% if updatedScenarios.length === 0 %}
-          All scenarios removed.
+          <p>All scenarios removed.</p>
         {% else %}
-          Updated to the following scenarios:
+          <p>Updated to the following scenarios:</p>
           <ul>
             {% for scenario in updatedScenarios %}
               <li>{{scenario}}</li>
@@ -22,12 +24,12 @@
       {% endif %}
       <form class="stack-1" method="POST" action="{{uiPath}}">
         <div class="button-group">
-            <div>
-              <button type="submit" name="button" value="modify">Modify scenarios</button>
-              <button type="submit" name="button" value="reset">Reset scenarios</button>
-            </div>
+          <div>
+            <button type="submit" name="button" value="modify">Modify scenarios</button>
+            <button type="submit" name="button" value="reset">Reset scenarios</button>
           </div>
-        <legend><h1>Scenarios</h1></legend>
+        </div>
+        <h1>Scenarios</h1>
         <p>
           <a href="{{uiPath}}">Refresh page</a>
         </p>
@@ -35,30 +37,12 @@
           {% for group in groups %}
             <fieldset class="stack-3">
               <legend><h2>{{group.name | capitalize}}</h2></legend>
-              <div class="stack-3">
-                <div>
-                  <input
-                    type="radio"
-                    id="none-{{group.name}}"
-                    name="{{group.name}}"
-                    value=""
-                    {% if group.noneChecked %}checked{% endif %}
-                  />
-                  <label for="none-{{group.name}}">No "{{group.name}}" scenario</label>
-                </div>
+              <select id="{{group.name}}" name="{{group.name}}">
+                <option>none</option>
                 {% for scenario in group.scenarios %}
-                  <div>
-                    <input
-                      type="radio"
-                      id="{{scenario.name}}"
-                      name="{{group.name}}"
-                      value="{{scenario.name}}"
-                      {% if scenario.checked %}checked{% endif %}
-                    />
-                    <label for="{{scenario.name}}">{{scenario.name}}</label>
-                  </div>
+                  <option value="{{scenario.name}}" {% if scenario.checked %}selected{% endif %}>{{scenario.name}}</option>
                 {% endfor %}
-              </div>
+              </select>
             </fieldset>
           {% endfor %}
           {% if other.length %}
