@@ -1,21 +1,23 @@
-export type Default =
+export type DefaultScenario =
   | Mock[]
   | {
       context?: Context;
       mocks: Mock[];
     };
 
-export type Scenarios = {
-  [scenario: string]:
-    | Mock[]
-    | {
-        group?: string;
-        context?: Context;
-        mocks: Mock[];
-      };
+export type Scenario =
+  | Mock[]
+  | {
+      group?: string;
+      context?: Context;
+      mocks: Mock[];
+    };
+
+export type ScenarioMap = {
+  [scenario: string]: Scenario;
 };
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export type Override<TResponse> = {
   __override: ResponseProps<TResponse>;
@@ -32,7 +34,7 @@ export type MockResponse<TInput, TResponse> =
   | TResponse
   | ResponseFunction<TInput, TResponse>;
 
-export type HttpResponse = Record<string, any> | string | null;
+type HttpResponse = Record<string, any> | string | null;
 
 export type ResponseProps<TResponse> = {
   response?: TResponse;
@@ -55,7 +57,7 @@ export type HttpMock = {
   >
 >;
 
-export type GraphQlResponse = {
+type GraphQlResponse = {
   data?: null | Record<string, any>;
   errors?: Array<any>;
 };
@@ -85,10 +87,12 @@ export type Options = {
   uiPath?: string;
   modifyScenariosPath?: string;
   resetScenariosPath?: string;
+  cookieMode?: boolean;
 };
 
 export type Context = Record<string, any>;
+export type PartialContext = Context | ((context: Context) => Context);
 
-export type UpdateContext = (
-  partialContext: Context | ((context: Context) => Context),
-) => Context;
+export type UpdateContext = (partialContext: PartialContext) => Context;
+
+export type GetContext = () => Context;

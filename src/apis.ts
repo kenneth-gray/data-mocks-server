@@ -1,18 +1,18 @@
-import { RequestHandler } from 'express';
-import { Scenarios } from './types';
+import { RequestHandler, Response, Request } from 'express';
+import { ScenarioMap } from './types';
 
 export { modifyScenarios, resetScenarios };
 
 function modifyScenarios({
   scenarioNames,
-  scenarioMocks,
-  updateScenarios,
+  scenarioMap,
+  updateScenariosAndContext,
 }: {
   scenarioNames: string[];
-  scenarioMocks: Scenarios;
-  updateScenarios: (scenarios: string[]) => void;
+  scenarioMap: ScenarioMap;
+  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
 }): RequestHandler {
-  return ({ body: { scenarios: scenariosBody } }, res) => {
+  return ({ body: { scenarios: scenariosBody } }: Request, res: Response) => {
     if (!Array.isArray(scenariosBody)) {
       res.status(400).json({
         message:
@@ -30,7 +30,7 @@ function modifyScenarios({
         return;
       }
 
-      const scenarioMock = scenarioMocks[scenario];
+      const scenarioMock = scenarioMap[scenario];
       if (!Array.isArray(scenarioMock) && scenarioMock.group) {
         const { group } = scenarioMock;
         if (scenariosByGroup[group]) {
@@ -44,19 +44,19 @@ function modifyScenarios({
       }
     }
 
-    updateScenarios(scenariosBody);
+    updateScenariosAndContext(res, scenariosBody);
 
     res.sendStatus(204);
   };
 }
 
 function resetScenarios({
-  updateScenarios,
+  updateScenariosAndContext,
 }: {
-  updateScenarios: (scenarios: string[]) => void;
+  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
 }): RequestHandler {
-  return (_, res) => {
-    updateScenarios([]);
+  return (_, res: Response) => {
+    updateScenariosAndContext(res, []);
     res.sendStatus(204);
   };
 }

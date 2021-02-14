@@ -6,7 +6,7 @@ import {
   UpdateContext,
   ResponseFunction,
   Override,
-  Context,
+  GetContext,
 } from './types';
 
 export { createHandler };
@@ -20,7 +20,7 @@ function createHandler<TInput, TResponse>({
   getContext,
 }: ResponseProps<MockResponse<TInput, TResponse>> & {
   updateContext: UpdateContext;
-  getContext: () => Context;
+  getContext: GetContext;
 }) {
   return async (req: TInput, res: Response) => {
     const actualResponse =
