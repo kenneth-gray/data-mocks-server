@@ -1,12 +1,18 @@
-import { ScenarioMap } from './types';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { RequestHandler, Request, Response } from 'express';
+
+import { ScenarioMap, Groups } from './types';
+import { Html } from './Html';
 
 export { getUi, updateUi };
 
 function getUi({
+  uiPath,
   scenarioMap,
   getScenarioNames,
 }: {
+  uiPath: string;
   scenarioMap: ScenarioMap;
   getScenarioNames: (req: Request, res: Response) => string[];
 }): RequestHandler {
@@ -16,19 +22,22 @@ function getUi({
       getScenarioNames(req, res),
     );
 
-    res.render('index.njk', {
-      groups,
-      other,
-    });
+    const html = renderToStaticMarkup(
+      <Html uiPath={uiPath} groups={groups} other={other} />,
+    );
+
+    res.send('<!DOCTYPE html>\n' + html);
   };
 }
 
 function updateUi({
+  uiPath,
   groupNames,
   scenarioNames,
   scenarioMap,
   updateScenariosAndContext,
 }: {
+  uiPath: string;
   groupNames: string[];
   scenarioNames: string[];
   scenarioMap: ScenarioMap;
@@ -57,22 +66,18 @@ function updateUi({
 
     const { groups, other } = getPageVariables(scenarioMap, updatedScenarios);
 
-    res.render('index.njk', {
-      groups,
-      other,
-      updatedScenarios,
-    });
+    const html = renderToStaticMarkup(
+      <Html
+        uiPath={uiPath}
+        groups={groups}
+        other={other}
+        updatedScenarios={updatedScenarios}
+      />,
+    );
+
+    res.send('<!DOCTYPE html>\n' + html);
   };
 }
-
-type Groups = Array<{
-  name: string;
-  noneChecked: boolean;
-  scenarios: Array<{
-    name: string;
-    checked: boolean;
-  }>;
-}>;
 
 function getPageVariables(
   scenarioMap: ScenarioMap,

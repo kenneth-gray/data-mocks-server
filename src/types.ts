@@ -96,3 +96,12 @@ export type PartialContext = Context | ((context: Context) => Context);
 export type UpdateContext = (partialContext: PartialContext) => Context;
 
 export type GetContext = () => Context;
+
+export type Groups = Array<{
+  name: string;
+  noneChecked: boolean;
+  scenarios: Array<{
+    name: string;
+    checked: boolean;
+  }>;
+}>;
