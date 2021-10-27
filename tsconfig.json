@@ -3,7 +3,7 @@
     // Allow default imports from modules with no default export.
     "allowSyntheticDefaultImports": true,
     // Target latest version of ECMAScript.
-    "target": "ESNext",
+    "target": "ES6",
     // Search under node_modules for non-relative imports.
     "moduleResolution": "node",
     // Enable strictest settings like strictNullChecks & noImplicitAny.
@@ -18,7 +18,9 @@
     "noUnusedParameters": true,
     "outDir": "lib",
     "module": "commonjs",
-    "declaration": true
+    "declaration": true,
+    "jsx": "react",
+    "skipLibCheck": true
   },
   "include": ["src"]
 }

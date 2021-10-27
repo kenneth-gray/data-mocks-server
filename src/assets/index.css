@@ -132,3 +132,7 @@ button:focus {
 .button-group > * > button {
   margin: 0.5rem;
 }
+
+.group-title {
+  text-transform: capitalize;
+}

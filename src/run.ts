@@ -1,7 +1,6 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Request, Response, NextFunction } from 'express';
-import nunjucks from 'nunjucks';
 import path from 'path';
 import { transform } from 'server-with-kill';
 
@@ -72,11 +71,6 @@ function run({
     [],
   );
 
-  nunjucks.configure(__dirname, {
-    autoescape: true,
-    express: app,
-  });
-
   app.use(cors());
   app.use(cookieParser());
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
@@ -87,6 +81,7 @@ function run({
   app.get(
     uiPath,
     getUi({
+      uiPath,
       scenarioMap,
       getScenarioNames,
     }),
@@ -95,6 +90,7 @@ function run({
   app.post(
     uiPath,
     updateUi({
+      uiPath,
       groupNames,
       scenarioNames,
       scenarioMap,

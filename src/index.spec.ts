@@ -945,7 +945,7 @@ describe('run', () => {
 
         await new Promise(resolve => {
           setTimeout(() => {
-            resolve();
+            resolve(null);
           }, timeoutDelayMs + 100);
         });
 
@@ -1465,13 +1465,13 @@ function getDuration(startTime: [number, number]) {
   return hrend[0] * 1000 + hrend[1] / 1000000;
 }
 
-function serverTest(server: ServerWithKill, fn: Function) {
+function serverTest(server: ServerWithKill, fn: () => void) {
   return new Promise((resolve, reject) => {
     server.on('listening', async () => {
       try {
         await fn();
         server.kill(() => {
-          resolve();
+          resolve(null);
         });
       } catch (error) {
         server.kill(() => {
