@@ -32,9 +32,31 @@ import {
   setContextCookie,
 } from './cookies';
 
-export { run };
+export { createExpressApp, run };
 
 function run({
+  default: defaultScenario,
+  scenarios: scenarioMap = {},
+  options = {},
+}: {
+  default: DefaultScenario;
+  scenarios?: ScenarioMap;
+  options?: Options;
+}) {
+  const { port = 3000 } = options;
+  const app = createExpressApp({
+    default: defaultScenario,
+    scenarios: scenarioMap,
+    options,
+  });
+  return transform(
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    }),
+  );
+}
+
+function createExpressApp({
   default: defaultScenario,
   scenarios: scenarioMap = {},
   options = {},
@@ -46,7 +68,6 @@ function run({
   let selectedScenarioNames: string[] = [];
   let currentContext = getContextFromScenarios([defaultScenario]);
   const {
-    port = 3000,
     uiPath = '/',
     modifyScenariosPath = '/modify-scenarios',
     resetScenariosPath = '/reset-scenarios',
@@ -144,11 +165,7 @@ function run({
     }),
   );
 
-  return transform(
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    }),
-  );
+  return app;
 
   function updateScenariosAndContext(
     res: Response,
