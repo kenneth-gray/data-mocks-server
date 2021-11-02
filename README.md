@@ -61,7 +61,15 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 ## API
 
+### createExpressApp
+
+Returns the internal express instance
+
+> `function({ default, scenarios, options })`
+
 ### run
+
+Returns an http server, with an additional kill method
 
 > `function({ default, scenarios, options })`
 
@@ -71,10 +79,10 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| context | `object` | `undefined` | Used to set up data across API calls. |
-| mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
+| Property | Type          | Default     | Description                           |
+| -------- | ------------- | ----------- | ------------------------------------- |
+| context  | `object`      | `undefined` | Used to set up data across API calls. |
+| mocks    | `Array<Mock>` | _required_  | See [Mock](#mock) for more details.   |
 
 #### scenarios
 
@@ -82,13 +90,13 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| scenarioName | `string` | _required_ | Name of scenario. |
-| Mock | `Mock` | _required_ | See [Mock](#mock) for more details. |
-| group | `string` | `undefined` | Used to group scenarios together so that only one scenario in a group can be selected. |
-| context | `object` | `undefined` | Used to set up data across API calls. |
-| mocks | `Array<Mock>` | _required_ | See [Mock](#mock) for more details. |
+| Property     | Type          | Default     | Description                                                                            |
+| ------------ | ------------- | ----------- | -------------------------------------------------------------------------------------- |
+| scenarioName | `string`      | _required_  | Name of scenario.                                                                      |
+| Mock         | `Mock`        | _required_  | See [Mock](#mock) for more details.                                                    |
+| group        | `string`      | `undefined` | Used to group scenarios together so that only one scenario in a group can be selected. |
+| context      | `object`      | `undefined` | Used to set up data across API calls.                                                  |
+| mocks        | `Array<Mock>` | _required_  | See [Mock](#mock) for more details.                                                    |
 
 #### options
 
@@ -96,12 +104,12 @@ Visiting `http://localhost:3000` will allow you to `Modify scenarios`. The defau
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| port | `number` | `3000` | Port that the http server runs on. |
-| uiPath | `string` | `/` | Path that the UI will load on. `http://localhost:{port}{uiPath}` |
+| Property            | Type     | Default             | Description                                                                      |
+| ------------------- | -------- | ------------------- | -------------------------------------------------------------------------------- |
+| port                | `number` | `3000`              | Port that the http server runs on.                                               |
+| uiPath              | `string` | `/`                 | Path that the UI will load on. `http://localhost:{port}{uiPath}`                 |
 | modifyScenariosPath | `string` | `/modify-scenarios` | API path for modifying scenarios. `http://localhost:{port}{modifyScenariosPath}` |
-| resetScenariosPath | `string` | `/reset-scenarios` | API path for resetting scenarios. `http://localhost:{port}{resetScenariosPath}` |
+| resetScenariosPath  | `string` | `/reset-scenarios`  | API path for resetting scenarios. `http://localhost:{port}{resetScenariosPath}`  |
 
 ## Types
 
@@ -117,14 +125,14 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| url | `string` / `RegExp` | _required_ | Path of endpoint. Must start with `/`. |
-| method | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` / `'PATCH'` | _required_ | HTTP method of endpoint. |
-| response | `undefined` / `Response` / `HttpResponseFunction` | `undefined` | [Response](#response), [HttpResponseFunction](#httpresponsefunction). |
-| responseCode | `number` | `200` | HTTP status code for response. |
-| responseHeaders | `object` / `undefined` | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
-| responseDelay | `number` | `0` | Number of milliseconds before the response is returned. |
+| Property        | Type                                                  | Default         | Description                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| url             | `string` / `RegExp`                                   | _required_      | Path of endpoint. Must start with `/`.                                                                                                                                                                             |
+| method          | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` / `'PATCH'` | _required_      | HTTP method of endpoint.                                                                                                                                                                                           |
+| response        | `undefined` / `Response` / `HttpResponseFunction`     | `undefined`     | [Response](#response), [HttpResponseFunction](#httpresponsefunction).                                                                                                                                              |
+| responseCode    | `number`                                              | `200`           | HTTP status code for response.                                                                                                                                                                                     |
+| responseHeaders | `object` / `undefined`                                | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
+| responseDelay   | `number`                                              | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
 
 ### Response
 
@@ -136,14 +144,14 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| query | `object` | `{}` | query object as defined by `express`. |
-| body | `object` | `{}` | body object as defined by `express`. |
-| params | `object` | `{}` | params object as defined by `express`. |
-| context | `object` | `{}` | Data stored across API calls. |
-| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`).  |
-| response | `undefined` / `Response` / `Override` | _required_ | [Response](#response), [Override](#override). |
+| Property      | Type                                  | Default                            | Description                                                                                                       |
+| ------------- | ------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| query         | `object`                              | `{}`                               | query object as defined by `express`.                                                                             |
+| body          | `object`                              | `{}`                               | body object as defined by `express`.                                                                              |
+| params        | `object`                              | `{}`                               | params object as defined by `express`.                                                                            |
+| context       | `object`                              | `{}`                               | Data stored across API calls.                                                                                     |
+| updateContext | `Function`                            | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
+| response      | `undefined` / `Response` / `Override` | _required_                         | [Response](#response), [Override](#override).                                                                     |
 
 ### GraphQlMock
 
@@ -151,10 +159,10 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| url | `string` | _required_ | Path of endpoint. |
-| method | `'GRAPHQL'` | _required_ | Indentifies this mock as a GraphQlMock. |
+| Property   | Type               | Default    | Description                                                                            |
+| ---------- | ------------------ | ---------- | -------------------------------------------------------------------------------------- |
+| url        | `string`           | _required_ | Path of endpoint.                                                                      |
+| method     | `'GRAPHQL'`        | _required_ | Indentifies this mock as a GraphQlMock.                                                |
 | operations | `Array<Operation>` | _required_ | List of operations for GraphQL endpoint. See [Operation](#operation) for more details. |
 
 #### Operation
@@ -163,14 +171,14 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| type | `'query'` / `'mutation'` | _required_ | Type of operation. |
-| name | `string` | _required_ | Name of operation. |
-| response | `undefined` / `Response` / `GraphQlResponse` / `GraphQlResponseFunction` | `undefined` | [Response](#response), [GraphQlResponse](#graphqlresponse), [GraphQlResponseFunction](#graphqlresponsefunction). |
-| responseCode | `number` | `200` | HTTP status code for response. |
-| responseHeaders | `object` / `undefined` | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
-| responseDelay | `number` | `0` | Number of milliseconds before the response is returned. |
+| Property        | Type                                                                     | Default         | Description                                                                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| type            | `'query'` / `'mutation'`                                                 | _required_      | Type of operation.                                                                                                                                                                                                 |
+| name            | `string`                                                                 | _required_      | Name of operation.                                                                                                                                                                                                 |
+| response        | `undefined` / `Response` / `GraphQlResponse` / `GraphQlResponseFunction` | `undefined`     | [Response](#response), [GraphQlResponse](#graphqlresponse), [GraphQlResponseFunction](#graphqlresponsefunction).                                                                                                   |
+| responseCode    | `number`                                                                 | `200`           | HTTP status code for response.                                                                                                                                                                                     |
+| responseHeaders | `object` / `undefined`                                                   | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
+| responseDelay   | `number`                                                                 | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
 
 ### GraphQlResponse
 
@@ -182,12 +190,12 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| variables | `object` | `{}` | variables sent by client. |
-| context | `object` | `{}` | Data stored across API calls. |
-| updateContext | `Function` | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`).  |
-| response | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_ | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override). |
+| Property      | Type                                                      | Default                            | Description                                                                                                       |
+| ------------- | --------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| variables     | `object`                                                  | `{}`                               | variables sent by client.                                                                                         |
+| context       | `object`                                                  | `{}`                               | Data stored across API calls.                                                                                     |
+| updateContext | `Function`                                                | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
+| response      | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_                         | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override).                                |
 
 ### Override
 
@@ -232,5 +240,5 @@ const mock = {
     // No __override necessary, this is the response on success
     return { message: 'success' };
   },
-}
+};
 ```
