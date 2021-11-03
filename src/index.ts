@@ -7,4 +7,4 @@ export {
   HttpMock,
   Scenario,
 } from './types';
-export { run } from './run';
+export { run, createExpressApp } from './run';
