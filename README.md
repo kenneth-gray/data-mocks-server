@@ -104,12 +104,13 @@ Returns an http server, with an additional kill method
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property            | Type     | Default             | Description                                                                      |
-| ------------------- | -------- | ------------------- | -------------------------------------------------------------------------------- |
-| port                | `number` | `3000`              | Port that the http server runs on.                                               |
-| uiPath              | `string` | `/`                 | Path that the UI will load on. `http://localhost:{port}{uiPath}`                 |
-| modifyScenariosPath | `string` | `/modify-scenarios` | API path for modifying scenarios. `http://localhost:{port}{modifyScenariosPath}` |
-| resetScenariosPath  | `string` | `/reset-scenarios`  | API path for resetting scenarios. `http://localhost:{port}{resetScenariosPath}`  |
+| Property            | Type      | Default             | Description                                                                                |
+| ------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| port                | `number`  | `3000`              | Port that the http server runs on.                                                         |
+| uiPath              | `string`  | `/`                 | Path that the UI will load on. `http://localhost:{port}{uiPath}`                           |
+| modifyScenariosPath | `string`  | `/modify-scenarios` | API path for modifying scenarios. `http://localhost:{port}{modifyScenariosPath}`           |
+| resetScenariosPath  | `string`  | `/reset-scenarios`  | API path for resetting scenarios. `http://localhost:{port}{resetScenariosPath}`            |
+| cookieMode          | `boolean` | `false`             | Whether or not to store scenario selections in a cookie rather than directly in the server |
 
 ## Types
 
