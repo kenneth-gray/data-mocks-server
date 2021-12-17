@@ -1,15 +1,13 @@
 import { Response, Request } from 'express';
-import { Context } from './types';
+import { Context, CookieValue } from './types';
 
 export {
   getScenariosFromCookie,
   getContextFromCookie,
-  setScenariosCookie,
-  setContextCookie,
+  setContextAndScenariosCookie,
 };
 
-const SCENARIOS_COOKIE_NAME = 'data-mocks-server-scenarios';
-const CONTEXT_COOKIE_NAME = 'data-mocks-server-context';
+const CONTEXT_AND_SCENARIOS_COOKIE_NAME = 'data-mocks-server';
 
 function setCookie({
   res,
@@ -18,7 +16,7 @@ function setCookie({
 }: {
   res: Response;
   name: string;
-  value: any;
+  value: CookieValue;
 }) {
   res.cookie(name, JSON.stringify(value), {
     encode: String,
@@ -34,8 +32,8 @@ function getCookie({
   req: Request;
   res: Response;
   name: string;
-  defaultValue: any;
-}) {
+  defaultValue: CookieValue;
+}): CookieValue {
   if (req.cookies[name]) {
     try {
       const value = JSON.parse(req.cookies[name]);
@@ -57,9 +55,14 @@ function getScenariosFromCookie({
 }: {
   req: Request;
   res: Response;
-  defaultValue: string[];
+  defaultValue: CookieValue;
 }) {
-  return getCookie({ req, res, name: SCENARIOS_COOKIE_NAME, defaultValue });
+  return getCookie({
+    req,
+    res,
+    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
+    defaultValue,
+  }).scenarios;
 }
 
 function getContextFromCookie({
@@ -69,20 +72,23 @@ function getContextFromCookie({
 }: {
   req: Request;
   res: Response;
-  defaultValue: Context;
+  defaultValue: CookieValue;
 }) {
   return getCookie({
     req,
     res,
-    name: CONTEXT_COOKIE_NAME,
+    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
     defaultValue,
+  }).context;
+}
+
+function setContextAndScenariosCookie(
+  res: Response,
+  contextAndScenarios: { context: Context; scenarios: string[] },
+) {
+  setCookie({
+    res,
+    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
+    value: contextAndScenarios,
   });
-}
-
-function setContextCookie(res: Response, context: Context) {
-  setCookie({ res, name: CONTEXT_COOKIE_NAME, value: context });
-}
-
-function setScenariosCookie(res: Response, scenarios: string[]) {
-  setCookie({ res, name: SCENARIOS_COOKIE_NAME, value: scenarios });
 }

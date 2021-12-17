@@ -28,8 +28,7 @@ import { getUi, updateUi } from './ui';
 import {
   getScenariosFromCookie,
   getContextFromCookie,
-  setScenariosCookie,
-  setContextCookie,
+  setContextAndScenariosCookie,
 } from './cookies';
 
 export { createExpressApp, run };
@@ -149,15 +148,21 @@ function createExpressApp({
           return getContextFromCookie({
             req,
             res,
-            defaultValue: getContextFromScenarios(selectedScenarios),
+            defaultValue: {
+              scenarios: getScenarioNames(req, res),
+              context: getContextFromScenarios(selectedScenarios),
+            },
           });
         }
 
         return currentContext;
       },
-      setContext: (res: Response, context: Context) => {
+      setContext: (req: Request, res: Response, context: Context) => {
         if (cookieMode) {
-          setContextCookie(res, context);
+          setContextAndScenariosCookie(res, {
+            scenarios: getScenarioNames(req, res),
+            context,
+          });
         } else {
           currentContext = context;
         }
@@ -179,8 +184,10 @@ function createExpressApp({
     const context = getContextFromScenarios(updatedScenarios);
 
     if (cookieMode) {
-      setContextCookie(res, context);
-      setScenariosCookie(res, updatedScenarioNames);
+      setContextAndScenariosCookie(res, {
+        context,
+        scenarios: updatedScenarioNames,
+      });
 
       return;
     }
@@ -193,7 +200,22 @@ function createExpressApp({
 
   function getScenarioNames(req: Request, res: Response) {
     if (cookieMode) {
-      return getScenariosFromCookie({ req, res, defaultValue: [] });
+      const defaultScenarios: string[] = [];
+
+      return getScenariosFromCookie({
+        req,
+        res,
+        defaultValue: {
+          context: getContextFromScenarios(
+            getScenarios({
+              defaultScenario,
+              scenarioMap,
+              scenarioNames: defaultScenarios,
+            }),
+          ),
+          scenarios: defaultScenarios,
+        },
+      });
     }
 
     return selectedScenarioNames;
@@ -269,7 +291,7 @@ function createRequestHandler({
     res: Response,
     selectedScenarios: Scenario[],
   ) => Context;
-  setContext: (res: Response, context: Context) => void;
+  setContext: (req: Request, res: Response, context: Context) => void;
 }) {
   return (req: Request, res: Response, next: NextFunction) => {
     const scenarioNames = getScenarioNames(req, res);
@@ -321,7 +343,7 @@ function createRequestHandler({
       // times, the local version of "getContext" will return the wrong value
       context = updateContext(context, partialContext);
 
-      setContext(res, context);
+      setContext(req, res, context);
 
       return context;
     }

@@ -105,3 +105,8 @@ export type Groups = Array<{
     checked: boolean;
   }>;
 }>;
+
+export type CookieValue = {
+  context: Context;
+  scenarios: string[];
+};
