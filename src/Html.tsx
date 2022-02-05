@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Groups } from './types';
+import { UiGroups } from './types';
 
 function Html({
   updatedScenarios,
@@ -9,7 +9,7 @@ function Html({
   other,
 }: {
   uiPath: string;
-  groups: Groups;
+  groups: UiGroups;
   other: Array<{ name: string; checked: boolean }>;
   updatedScenarios?: string[];
 }) {

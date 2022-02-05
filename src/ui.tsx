@@ -2,8 +2,9 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RequestHandler, Request, Response } from 'express';
 
-import { ScenarioMap, Groups } from './types';
+import { UiGroups, ScenarioMap } from './types';
 import { Html } from './Html';
+import { getScenarios } from './utils/get-scenarios';
 
 export { getUi, updateUi };
 
@@ -82,62 +83,23 @@ function updateUi({
 function getPageVariables(
   scenarioMap: ScenarioMap,
   selectedScenarios: string[],
-) {
-  const { other, ...groupedScenarios } = Object.entries(scenarioMap).reduce<{
-    other: string[];
-    [key: string]: string[];
-  }>(
-    (result, [scenarioName, scenarioMock]) => {
-      if (Array.isArray(scenarioMock) || scenarioMock.group == null) {
-        result.other.push(scenarioName);
-
-        return result;
-      }
-
-      const { group } = scenarioMock;
-
-      if (!result[group]) {
-        result[group] = [];
-      }
-
-      result[group].push(scenarioName);
-
-      return result;
-    },
-    { other: [] },
-  );
-
-  const groups = Object.entries(groupedScenarios).reduce<Groups>(
-    (result, [name, groupScenarios]) => {
-      let noneChecked = true;
-      const scenarios = groupScenarios.map(scenario => {
-        const checked = selectedScenarios.includes(scenario);
-        if (checked) {
-          noneChecked = false;
-        }
-
-        return {
-          name: scenario,
-          checked,
-        };
-      });
-
-      result.push({
-        noneChecked,
-        name,
-        scenarios,
-      });
-
-      return result;
-    },
-    [],
-  );
+): { groups: UiGroups; other: Array<{ name: string; checked: boolean }> } {
+  const { groups, other } = getScenarios(scenarioMap, selectedScenarios);
 
   return {
-    groups,
-    other: other.map(scenario => ({
-      name: scenario,
-      checked: selectedScenarios.includes(scenario),
-    })),
+    groups: groups.map(group => {
+      const scenarios = group.scenarios.map(({ id, selected }) => ({
+        name: id,
+        checked: selected,
+      }));
+      const noneChecked = scenarios.every(({ checked }) => !checked);
+
+      return {
+        name: group.name,
+        scenarios,
+        noneChecked,
+      };
+    }),
+    other: other.map(({ id, selected }) => ({ name: id, checked: selected })),
   };
 }

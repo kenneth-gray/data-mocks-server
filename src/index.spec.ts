@@ -1313,7 +1313,7 @@ describe('run', () => {
       });
     });
 
-    it('reset-scenarios and modify-scenarios paths can be changed', async () => {
+    it('reset-scenarios, modify-scenarios and scenarios paths can be changed', async () => {
       const initialResponse = { something: 'old' };
       const scenarioResponse = { something: 'new' };
       const server = run({
@@ -1336,10 +1336,24 @@ describe('run', () => {
         options: {
           modifyScenariosPath: '/modify',
           resetScenariosPath: '/reset',
+          scenariosPath: '/get-scenarios',
         },
       });
 
       await serverTest(server, async () => {
+        const scenariosResponse = await rp.get(
+          'http://localhost:3000/get-scenarios',
+          {
+            json: true,
+          },
+        );
+        expect(scenariosResponse).toEqual(
+          expect.objectContaining({
+            groups: expect.anything(),
+            other: expect.anything(),
+          }),
+        );
+
         const firstResponse = await rp.get('http://localhost:3000/test-me', {
           json: true,
         });
@@ -1451,6 +1465,139 @@ describe('run', () => {
           json: true,
         });
         expect(info2).toEqual({ name, age, favouriteFood });
+      });
+    });
+  });
+
+  describe('GET scenarios', () => {
+    it('returns grouped and other scenarios', async () => {
+      const server = run({
+        default: [],
+        scenarios: {
+          test1: [
+            {
+              url: '/test-me-1',
+              method: 'GET',
+            },
+          ],
+          test2: [
+            {
+              url: '/test-me-2',
+              method: 'GET',
+            },
+          ],
+          test3: {
+            group: 'abc',
+            mocks: [
+              {
+                url: '/test-me-3',
+                method: 'GET',
+              },
+            ],
+          },
+          test4: {
+            group: 'abc',
+            mocks: [
+              {
+                url: '/test-me-4',
+                method: 'GET',
+              },
+            ],
+          },
+        },
+      });
+
+      await serverTest(server, async () => {
+        const scenariosResponse = await rp.get(
+          'http://localhost:3000/scenarios',
+          {
+            json: true,
+          },
+        );
+
+        expect(scenariosResponse).toEqual({
+          groups: [
+            {
+              name: 'abc',
+              scenarios: [
+                { id: 'test3', selected: false },
+                { id: 'test4', selected: false },
+              ],
+            },
+          ],
+          other: [
+            { id: 'test1', selected: false },
+            { id: 'test2', selected: false },
+          ],
+        });
+      });
+    });
+
+    it('returns the correct value for "selected"', async () => {
+      const server = run({
+        default: [],
+        scenarios: {
+          test1: [
+            {
+              url: '/test-me-1',
+              method: 'GET',
+            },
+          ],
+          test2: [
+            {
+              url: '/test-me-2',
+              method: 'GET',
+            },
+          ],
+          test3: {
+            group: 'abc',
+            mocks: [
+              {
+                url: '/test-me-3',
+                method: 'GET',
+              },
+            ],
+          },
+          test4: {
+            group: 'abc',
+            mocks: [
+              {
+                url: '/test-me-4',
+                method: 'GET',
+              },
+            ],
+          },
+        },
+      });
+
+      await serverTest(server, async () => {
+        await rp.put('http://localhost:3000/modify-scenarios', {
+          body: { scenarios: ['test2', 'test3'] },
+          json: true,
+        });
+
+        const scenariosResponse = await rp.get(
+          'http://localhost:3000/scenarios',
+          {
+            json: true,
+          },
+        );
+
+        expect(scenariosResponse).toEqual({
+          groups: [
+            {
+              name: 'abc',
+              scenarios: [
+                { id: 'test3', selected: true },
+                { id: 'test4', selected: false },
+              ],
+            },
+          ],
+          other: [
+            { id: 'test1', selected: false },
+            { id: 'test2', selected: true },
+          ],
+        });
       });
     });
   });
