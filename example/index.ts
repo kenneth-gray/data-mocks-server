@@ -156,7 +156,7 @@ run({
   },
   options: {
     port: 5000,
-    uiPath: '/scenarios',
+    uiPath: '/scenarios-ui',
     modifyScenariosPath: '/modify',
     resetScenariosPath: '/reset',
   },

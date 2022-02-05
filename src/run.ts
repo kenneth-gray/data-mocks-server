@@ -4,7 +4,11 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { transform } from 'server-with-kill';
 
-import { modifyScenarios, resetScenarios } from './apis';
+import {
+  modifyScenarios,
+  resetScenarios,
+  getScenarios as apiGetScenarios,
+} from './apis';
 import {
   getGraphQlMocks,
   getGraphQlMock,
@@ -70,6 +74,7 @@ function createExpressApp({
     uiPath = '/',
     modifyScenariosPath = '/modify-scenarios',
     resetScenariosPath = '/reset-scenarios',
+    scenariosPath = '/scenarios',
     cookieMode = false,
   } = options;
 
@@ -131,6 +136,14 @@ function createExpressApp({
     resetScenariosPath,
     resetScenarios({
       updateScenariosAndContext,
+    }),
+  );
+
+  app.get(
+    scenariosPath,
+    apiGetScenarios({
+      scenarioMap,
+      getScenarioNames,
     }),
   );
 

@@ -1,7 +1,8 @@
 import { RequestHandler, Response, Request } from 'express';
 import { ScenarioMap } from './types';
+import { getScenarios as utilsGetScenarios } from './utils/get-scenarios';
 
-export { modifyScenarios, resetScenarios };
+export { modifyScenarios, resetScenarios, getScenarios };
 
 function modifyScenarios({
   scenarioNames,
@@ -58,5 +59,19 @@ function resetScenarios({
   return (_, res: Response) => {
     updateScenariosAndContext(res, []);
     res.sendStatus(204);
+  };
+}
+
+function getScenarios({
+  scenarioMap,
+  getScenarioNames,
+}: {
+  scenarioMap: ScenarioMap;
+  getScenarioNames: (req: Request, res: Response) => string[];
+}): RequestHandler {
+  return (req: Request, res: Response) => {
+    const data = utilsGetScenarios(scenarioMap, getScenarioNames(req, res));
+
+    res.json(data);
   };
 }

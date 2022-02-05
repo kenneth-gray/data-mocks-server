@@ -100,7 +100,7 @@ Returns an http server, with an additional kill method
 
 #### options
 
-> `{ port, uiPath, modifyScenariosPath, resetScenariosPath }` | defaults to `{}`
+> `{ port, uiPath, modifyScenariosPath, resetScenariosPath, scenariosPath }` | defaults to `{}`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
@@ -110,6 +110,7 @@ Returns an http server, with an additional kill method
 | uiPath              | `string`  | `/`                 | Path that the UI will load on. `http://localhost:{port}{uiPath}`                           |
 | modifyScenariosPath | `string`  | `/modify-scenarios` | API path for modifying scenarios. `http://localhost:{port}{modifyScenariosPath}`           |
 | resetScenariosPath  | `string`  | `/reset-scenarios`  | API path for resetting scenarios. `http://localhost:{port}{resetScenariosPath}`            |
+| scenariosPath       | `string`  | `/scenarios`        | API path for getting scenarios. `http://localhost:{port}{scenariosPath}`                   |
 | cookieMode          | `boolean` | `false`             | Whether or not to store scenario selections in a cookie rather than directly in the server |
 
 ## Types
