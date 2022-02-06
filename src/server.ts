@@ -1,0 +1,345 @@
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
+
+import {
+  modifyScenarios,
+  resetScenarios,
+  getScenarios as apiGetScenarios,
+} from './apis';
+import {
+  getGraphQlMocks,
+  getGraphQlMock,
+  createGraphQlRequestHandler,
+} from './graph-ql';
+import {
+  getHttpMocks,
+  getHttpMockAndParams,
+  createHttpRequestHandler,
+} from './http';
+import {
+  Mock,
+  Options,
+  ScenarioMap,
+  DefaultScenario,
+  Context,
+  Scenario,
+  PartialContext,
+} from './types';
+import { getUi, updateUi } from './ui';
+import {
+  getScenariosFromCookie,
+  getContextFromCookie,
+  setContextAndScenariosCookie,
+} from './cookies';
+
+export { createExpressApp };
+
+function createExpressApp({
+  default: defaultScenario,
+  scenarios: scenarioMap = {},
+  options = {},
+}: {
+  default: DefaultScenario;
+  scenarios?: ScenarioMap;
+  options?: Options;
+}) {
+  let selectedScenarioNames: string[] = [];
+  let currentContext = getContextFromScenarios([defaultScenario]);
+  const {
+    uiPath = '/',
+    modifyScenariosPath = '/modify-scenarios',
+    resetScenariosPath = '/reset-scenarios',
+    scenariosPath = '/scenarios',
+    cookieMode = false,
+  } = options;
+
+  const app = express();
+  const scenarioNames = Object.keys(scenarioMap);
+  const groupNames = Object.values(scenarioMap).reduce<string[]>(
+    (result, mock) => {
+      if (
+        Array.isArray(mock) ||
+        mock.group == null ||
+        result.includes(mock.group)
+      ) {
+        return result;
+      }
+
+      result.push(mock.group);
+      return result;
+    },
+    [],
+  );
+
+  app.use(cors({ credentials: true }));
+  app.use(cookieParser());
+  app.use(uiPath, express.static(path.join(__dirname, 'assets')));
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
+  app.use(express.text({ type: 'application/graphql' }));
+
+  app.get(
+    uiPath,
+    getUi({
+      uiPath,
+      scenarioMap,
+      getScenarioNames,
+    }),
+  );
+
+  app.post(
+    uiPath,
+    updateUi({
+      uiPath,
+      groupNames,
+      scenarioNames,
+      scenarioMap,
+      updateScenariosAndContext,
+    }),
+  );
+
+  app.put(
+    modifyScenariosPath,
+    modifyScenarios({
+      scenarioNames,
+      scenarioMap,
+      updateScenariosAndContext,
+    }),
+  );
+
+  app.put(
+    resetScenariosPath,
+    resetScenarios({
+      updateScenariosAndContext,
+    }),
+  );
+
+  app.get(
+    scenariosPath,
+    apiGetScenarios({
+      scenarioMap,
+      getScenarioNames,
+    }),
+  );
+
+  app.use(
+    createRequestHandler({
+      getScenarioNames,
+      defaultScenario,
+      scenarioMap,
+      getContext: (
+        req: Request,
+        res: Response,
+        selectedScenarios: Scenario[],
+      ) => {
+        if (cookieMode) {
+          return getContextFromCookie({
+            req,
+            res,
+            defaultValue: {
+              scenarios: getScenarioNames(req, res),
+              context: getContextFromScenarios(selectedScenarios),
+            },
+          });
+        }
+
+        return currentContext;
+      },
+      setContext: (req: Request, res: Response, context: Context) => {
+        if (cookieMode) {
+          setContextAndScenariosCookie(res, {
+            scenarios: getScenarioNames(req, res),
+            context,
+          });
+        } else {
+          currentContext = context;
+        }
+      },
+    }),
+  );
+
+  return app;
+
+  function updateScenariosAndContext(
+    res: Response,
+    updatedScenarioNames: string[],
+  ) {
+    const updatedScenarios = getScenarios({
+      defaultScenario,
+      scenarioMap,
+      scenarioNames: updatedScenarioNames,
+    });
+    const context = getContextFromScenarios(updatedScenarios);
+
+    if (cookieMode) {
+      setContextAndScenariosCookie(res, {
+        context,
+        scenarios: updatedScenarioNames,
+      });
+
+      return;
+    }
+
+    currentContext = context;
+    selectedScenarioNames = updatedScenarioNames;
+
+    return updatedScenarioNames;
+  }
+
+  function getScenarioNames(req: Request, res: Response) {
+    if (cookieMode) {
+      const defaultScenarios: string[] = [];
+
+      return getScenariosFromCookie({
+        req,
+        res,
+        defaultValue: {
+          context: getContextFromScenarios(
+            getScenarios({
+              defaultScenario,
+              scenarioMap,
+              scenarioNames: defaultScenarios,
+            }),
+          ),
+          scenarios: defaultScenarios,
+        },
+      });
+    }
+
+    return selectedScenarioNames;
+  }
+}
+
+function updateContext(context: Context, partialContext: PartialContext) {
+  const newContext = {
+    ...context,
+    ...(typeof partialContext === 'function'
+      ? partialContext(context)
+      : partialContext),
+  };
+
+  return newContext;
+}
+
+function mergeMocks(scenarioMap: ({ mocks: Mock[] } | Mock[])[]) {
+  return scenarioMap.reduce<Mock[]>(
+    (result, scenarioMock) =>
+      result.concat(
+        Array.isArray(scenarioMock) ? scenarioMock : scenarioMock.mocks,
+      ),
+    [],
+  );
+}
+
+function getMocksFromScenarios(scenarios: Scenario[]) {
+  const mocks = mergeMocks(scenarios);
+  const httpMocks = getHttpMocks(mocks);
+  const graphQlMocks = getGraphQlMocks(mocks);
+
+  return { httpMocks, graphQlMocks };
+}
+
+function getScenarios({
+  defaultScenario,
+  scenarioMap,
+  scenarioNames,
+}: {
+  defaultScenario: DefaultScenario;
+  scenarioMap: ScenarioMap;
+  scenarioNames: string[];
+}): Scenario[] {
+  return [defaultScenario].concat(
+    scenarioNames.map(scenario => scenarioMap[scenario]),
+  );
+}
+
+function getContextFromScenarios(scenarios: Scenario[]) {
+  let context: Context = {};
+  scenarios.forEach(mock => {
+    if (!Array.isArray(mock) && mock.context) {
+      context = { ...context, ...mock.context };
+    }
+  });
+
+  return context;
+}
+
+function createRequestHandler({
+  getScenarioNames,
+  defaultScenario,
+  scenarioMap,
+  getContext,
+  setContext,
+}: {
+  getScenarioNames: (req: Request, res: Response) => string[];
+  defaultScenario: DefaultScenario;
+  scenarioMap: ScenarioMap;
+  getContext: (
+    req: Request,
+    res: Response,
+    selectedScenarios: Scenario[],
+  ) => Context;
+  setContext: (req: Request, res: Response, context: Context) => void;
+}) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const scenarioNames = getScenarioNames(req, res);
+    const selectedScenarios = getScenarios({
+      defaultScenario,
+      scenarioMap,
+      scenarioNames,
+    });
+
+    const { httpMocks, graphQlMocks } = getMocksFromScenarios(
+      selectedScenarios,
+    );
+    let context: Context = getContext(req, res, selectedScenarios);
+
+    const graphQlMock = getGraphQlMock(req, graphQlMocks);
+
+    if (graphQlMock) {
+      const requestHandler = createGraphQlRequestHandler({
+        graphQlMock,
+        updateContext: localUpdateContext,
+        getContext: localGetContext,
+      });
+
+      requestHandler(req, res, next);
+
+      return;
+    }
+
+    const { httpMock, params } = getHttpMockAndParams(req, httpMocks);
+    if (httpMock) {
+      const requestHandler = createHttpRequestHandler({
+        httpMock,
+        params,
+        getContext: localGetContext,
+        updateContext: localUpdateContext,
+      });
+
+      requestHandler(req, res);
+
+      return;
+    }
+
+    // Nothing matched - default 404 from express
+    next();
+
+    function localUpdateContext(partialContext: PartialContext) {
+      // Although "setContext" below will ensure the context is set correctly
+      // for the server/cookie, if response functions call "updateContext" multiple
+      // times, the local version of "getContext" will return the wrong value
+      context = updateContext(context, partialContext);
+
+      setContext(req, res, context);
+
+      return context;
+    }
+
+    function localGetContext() {
+      return context;
+    }
+  };
+}
