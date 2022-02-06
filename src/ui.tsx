@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RequestHandler, Request, Response } from 'express';
 
-import { UiGroups, ScenarioMap } from './types';
+import { ScenarioMap } from './types';
 import { Html } from './Html';
 import { getScenarios } from './utils/get-scenarios';
 
@@ -18,10 +18,8 @@ function getUi({
   getScenarioNames: (req: Request, res: Response) => string[];
 }): RequestHandler {
   return (req: Request, res: Response) => {
-    const { groups, other } = getPageVariables(
-      scenarioMap,
-      getScenarioNames(req, res),
-    );
+    const selectedScenarios = getScenarioNames(req, res);
+    const { groups, other } = getScenarios(scenarioMap, selectedScenarios);
 
     const html = renderToStaticMarkup(
       <Html uiPath={uiPath} groups={groups} other={other} />,
@@ -65,7 +63,7 @@ function updateUi({
 
     updateScenariosAndContext(res, updatedScenarios);
 
-    const { groups, other } = getPageVariables(scenarioMap, updatedScenarios);
+    const { groups, other } = getScenarios(scenarioMap, updatedScenarios);
 
     const html = renderToStaticMarkup(
       <Html
@@ -77,29 +75,5 @@ function updateUi({
     );
 
     res.send('<!DOCTYPE html>\n' + html);
-  };
-}
-
-function getPageVariables(
-  scenarioMap: ScenarioMap,
-  selectedScenarios: string[],
-): { groups: UiGroups; other: Array<{ name: string; checked: boolean }> } {
-  const { groups, other } = getScenarios(scenarioMap, selectedScenarios);
-
-  return {
-    groups: groups.map(group => {
-      const scenarios = group.scenarios.map(({ id, selected }) => ({
-        name: id,
-        checked: selected,
-      }));
-      const noneChecked = scenarios.every(({ checked }) => !checked);
-
-      return {
-        name: group.name,
-        scenarios,
-        noneChecked,
-      };
-    }),
-    other: other.map(({ id, selected }) => ({ name: id, checked: selected })),
   };
 }
