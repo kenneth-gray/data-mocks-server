@@ -64,13 +64,13 @@ function resetScenarios({
 
 function getScenarios({
   scenarioMap,
-  getScenarioNames,
+  getSelectedScenarioIds,
 }: {
   scenarioMap: ScenarioMap;
-  getScenarioNames: (req: Request, res: Response) => string[];
+  getSelectedScenarioIds: (req: Request, res: Response) => string[];
 }): RequestHandler {
   return (req: Request, res: Response) => {
-    const data = getAllScenarios(scenarioMap, getScenarioNames(req, res));
+    const data = getAllScenarios(scenarioMap, getSelectedScenarioIds(req, res));
 
     res.json(data);
   };

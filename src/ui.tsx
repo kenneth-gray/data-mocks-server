@@ -11,15 +11,15 @@ export { getUi, updateUi };
 function getUi({
   uiPath,
   scenarioMap,
-  getScenarioNames,
+  getSelectedScenarioIds,
 }: {
   uiPath: string;
   scenarioMap: ScenarioMap;
-  getScenarioNames: (req: Request, res: Response) => string[];
+  getSelectedScenarioIds: (req: Request, res: Response) => string[];
 }): RequestHandler {
   return (req: Request, res: Response) => {
-    const selectedScenarios = getScenarioNames(req, res);
-    const { groups, other } = getAllScenarios(scenarioMap, selectedScenarios);
+    const selectedScenarioIds = getSelectedScenarioIds(req, res);
+    const { groups, other } = getAllScenarios(scenarioMap, selectedScenarioIds);
 
     const html = renderToStaticMarkup(
       <Html uiPath={uiPath} groups={groups} other={other} />,

@@ -2,7 +2,7 @@ import { Response, Request } from 'express';
 import { Context, CookieValue } from './types';
 
 export {
-  getScenariosFromCookie,
+  getScenarioIdsFromCookie,
   getContextFromCookie,
   setContextAndScenariosCookie,
 };
@@ -48,7 +48,7 @@ function getCookie({
   return defaultValue;
 }
 
-function getScenariosFromCookie({
+function getScenarioIdsFromCookie({
   req,
   res,
   defaultValue,

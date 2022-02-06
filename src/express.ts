@@ -29,7 +29,7 @@ import {
 } from './types';
 import { getUi, updateUi } from './ui';
 import {
-  getScenariosFromCookie,
+  getScenarioIdsFromCookie,
   getContextFromCookie,
   setContextAndScenariosCookie,
 } from './cookies';
@@ -45,8 +45,6 @@ function createExpressApp({
   scenarios?: ScenarioMap;
   options?: Options;
 }) {
-  let selectedScenarioNames: string[] = [];
-  let currentContext = getContextFromScenarios([defaultScenario]);
   const {
     uiPath = '/',
     modifyScenariosPath = '/modify-scenarios',
@@ -55,8 +53,7 @@ function createExpressApp({
     cookieMode = false,
   } = options;
 
-  const app = express();
-  const scenarioNames = Object.keys(scenarioMap);
+  const scenarioIds = Object.keys(scenarioMap);
   const groupNames = Object.values(scenarioMap).reduce<string[]>(
     (result, mock) => {
       if (
@@ -73,6 +70,10 @@ function createExpressApp({
     [],
   );
 
+  let serverSelectedScenarioIds: string[] = [];
+  let serverContext = getContextFromScenarios([defaultScenario]);
+
+  const app = express();
   app.use(cors({ credentials: true }));
   app.use(cookieParser());
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
@@ -85,7 +86,7 @@ function createExpressApp({
     getUi({
       uiPath,
       scenarioMap,
-      getScenarioNames,
+      getSelectedScenarioIds,
     }),
   );
 
@@ -94,7 +95,7 @@ function createExpressApp({
     updateUi({
       uiPath,
       groupNames,
-      scenarioNames,
+      scenarioNames: scenarioIds,
       scenarioMap,
       updateScenariosAndContext,
     }),
@@ -103,7 +104,7 @@ function createExpressApp({
   app.put(
     modifyScenariosPath,
     modifyScenarios({
-      scenarioNames,
+      scenarioNames: scenarioIds,
       scenarioMap,
       updateScenariosAndContext,
     }),
@@ -120,13 +121,13 @@ function createExpressApp({
     scenariosPath,
     apiGetScenarios({
       scenarioMap,
-      getScenarioNames,
+      getSelectedScenarioIds,
     }),
   );
 
   app.use(
     createRequestHandler({
-      getScenarioNames,
+      getSelectedScenarioIds,
       defaultScenario,
       scenarioMap,
       getContext: (
@@ -139,22 +140,22 @@ function createExpressApp({
             req,
             res,
             defaultValue: {
-              scenarios: getScenarioNames(req, res),
+              scenarios: getSelectedScenarioIds(req, res),
               context: getContextFromScenarios(selectedScenarios),
             },
           });
         }
 
-        return currentContext;
+        return serverContext;
       },
       setContext: (req: Request, res: Response, context: Context) => {
         if (cookieMode) {
           setContextAndScenariosCookie(res, {
-            scenarios: getScenarioNames(req, res),
+            scenarios: getSelectedScenarioIds(req, res),
             context,
           });
         } else {
-          currentContext = context;
+          serverContext = context;
         }
       },
     }),
@@ -169,7 +170,7 @@ function createExpressApp({
     const updatedScenarios = getScenarios({
       defaultScenario,
       scenarioMap,
-      scenarioNames: updatedScenarioNames,
+      scenarioIds: updatedScenarioNames,
     });
     const context = getContextFromScenarios(updatedScenarios);
 
@@ -182,17 +183,17 @@ function createExpressApp({
       return;
     }
 
-    currentContext = context;
-    selectedScenarioNames = updatedScenarioNames;
+    serverContext = context;
+    serverSelectedScenarioIds = updatedScenarioNames;
 
     return updatedScenarioNames;
   }
 
-  function getScenarioNames(req: Request, res: Response) {
+  function getSelectedScenarioIds(req: Request, res: Response) {
     if (cookieMode) {
-      const defaultScenarios: string[] = [];
+      const defaultScenarioIds: string[] = [];
 
-      return getScenariosFromCookie({
+      return getScenarioIdsFromCookie({
         req,
         res,
         defaultValue: {
@@ -200,15 +201,15 @@ function createExpressApp({
             getScenarios({
               defaultScenario,
               scenarioMap,
-              scenarioNames: defaultScenarios,
+              scenarioIds: defaultScenarioIds,
             }),
           ),
-          scenarios: defaultScenarios,
+          scenarios: defaultScenarioIds,
         },
       });
     }
 
-    return selectedScenarioNames;
+    return serverSelectedScenarioIds;
   }
 }
 
@@ -244,14 +245,14 @@ function getMocksFromScenarios(scenarios: Scenario[]) {
 function getScenarios({
   defaultScenario,
   scenarioMap,
-  scenarioNames,
+  scenarioIds,
 }: {
   defaultScenario: DefaultScenario;
   scenarioMap: ScenarioMap;
-  scenarioNames: string[];
+  scenarioIds: string[];
 }): Scenario[] {
   return [defaultScenario].concat(
-    scenarioNames.map(scenario => scenarioMap[scenario]),
+    scenarioIds.map(scenarioId => scenarioMap[scenarioId]),
   );
 }
 
@@ -267,13 +268,13 @@ function getContextFromScenarios(scenarios: Scenario[]) {
 }
 
 function createRequestHandler({
-  getScenarioNames,
+  getSelectedScenarioIds,
   defaultScenario,
   scenarioMap,
   getContext,
   setContext,
 }: {
-  getScenarioNames: (req: Request, res: Response) => string[];
+  getSelectedScenarioIds: (req: Request, res: Response) => string[];
   defaultScenario: DefaultScenario;
   scenarioMap: ScenarioMap;
   getContext: (
@@ -284,11 +285,11 @@ function createRequestHandler({
   setContext: (req: Request, res: Response, context: Context) => void;
 }) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const scenarioNames = getScenarioNames(req, res);
+    const selectedScenarioIds = getSelectedScenarioIds(req, res);
     const selectedScenarios = getScenarios({
       defaultScenario,
       scenarioMap,
-      scenarioNames,
+      scenarioIds: selectedScenarioIds,
     });
 
     const { httpMocks, graphQlMocks } = getMocksFromScenarios(
