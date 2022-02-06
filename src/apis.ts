@@ -1,6 +1,6 @@
 import { RequestHandler, Response, Request } from 'express';
 import { ScenarioMap } from './types';
-import { getScenarios as utilsGetScenarios } from './utils/get-scenarios';
+import { getAllScenarios } from './utils/get-all-scenarios';
 
 export { modifyScenarios, resetScenarios, getScenarios };
 
@@ -70,7 +70,7 @@ function getScenarios({
   getScenarioNames: (req: Request, res: Response) => string[];
 }): RequestHandler {
   return (req: Request, res: Response) => {
-    const data = utilsGetScenarios(scenarioMap, getScenarioNames(req, res));
+    const data = getAllScenarios(scenarioMap, getScenarioNames(req, res));
 
     res.json(data);
   };

@@ -4,7 +4,7 @@ import { RequestHandler, Request, Response } from 'express';
 
 import { ScenarioMap } from './types';
 import { Html } from './Html';
-import { getScenarios } from './utils/get-scenarios';
+import { getAllScenarios } from './utils/get-all-scenarios';
 
 export { getUi, updateUi };
 
@@ -19,7 +19,7 @@ function getUi({
 }): RequestHandler {
   return (req: Request, res: Response) => {
     const selectedScenarios = getScenarioNames(req, res);
-    const { groups, other } = getScenarios(scenarioMap, selectedScenarios);
+    const { groups, other } = getAllScenarios(scenarioMap, selectedScenarios);
 
     const html = renderToStaticMarkup(
       <Html uiPath={uiPath} groups={groups} other={other} />,
@@ -63,7 +63,7 @@ function updateUi({
 
     updateScenariosAndContext(res, updatedScenarios);
 
-    const { groups, other } = getScenarios(scenarioMap, updatedScenarios);
+    const { groups, other } = getAllScenarios(scenarioMap, updatedScenarios);
 
     const html = renderToStaticMarkup(
       <Html

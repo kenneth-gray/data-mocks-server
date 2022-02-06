@@ -1,8 +1,11 @@
 import { Groups, ScenarioMap } from '../types';
 
-export { getScenarios };
+export { getAllScenarios };
 
-function getScenarios(scenarioMap: ScenarioMap, selectedScenarios: string[]) {
+function getAllScenarios(
+  scenarioMap: ScenarioMap,
+  selectedScenarios: string[],
+) {
   const { other, ...groupedScenarios } = Object.entries(scenarioMap).reduce<{
     other: string[];
     [key: string]: string[];
