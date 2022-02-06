@@ -1,6 +1,6 @@
 import { transform } from 'server-with-kill';
 
-import { createExpressApp } from './server';
+import { createExpressApp } from './express';
 import { Options, ScenarioMap, DefaultScenario } from './types';
 
 export { run };

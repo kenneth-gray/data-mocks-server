@@ -8,4 +8,4 @@ export {
   Scenario,
 } from './types';
 export { run } from './run';
-export { createExpressApp } from './server';
+export { createExpressApp } from './express';
