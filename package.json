@@ -66,6 +66,10 @@
     }
   },
   "release": {
+    "branches": [
+      "main",
+      "next"
+    ],
     "analyzeCommits": {
       "preset": "angular",
       "releaseRules": [
