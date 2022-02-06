@@ -13,10 +13,6 @@ function Html({
   other: Array<{ id: string; selected: boolean }>;
   updatedScenarios?: string[];
 }) {
-  if (uiPath[uiPath.length - 1] !== '/') {
-    uiPath = uiPath + '/';
-  }
-
   return (
     <html lang="en">
       <head>
@@ -25,7 +21,10 @@ function Html({
         <title>
           {updatedScenarios ? 'Updated - ' : ''}Scenarios - Data Mocks Server
         </title>
-        <link rel="stylesheet" href={`${uiPath}index.css`} />
+        <link
+          rel="stylesheet"
+          href={`${uiPath}${uiPath.slice(-1) === '/' ? '' : '/'}index.css`}
+        />
       </head>
       <body>
         <main>
