@@ -7,9 +7,9 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - dependencies-{{ checksum "package-lock.json" }}
-          # Fallback
-          - dependencies-
+            - dependencies-{{ checksum "package-lock.json" }}
+            # Fallback
+            - dependencies-
       - run: npm install
       - save_cache:
           paths:
@@ -26,9 +26,9 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - dependencies-{{ checksum "package-lock.json" }}
-          # Fallback
-          - dependencies-
+            - dependencies-{{ checksum "package-lock.json" }}
+            # Fallback
+            - dependencies-
       - run: npm install
       - run: npm run build
       - run: npm run semantic-release
@@ -43,4 +43,4 @@ workflows:
             - test
           filters:
             branches:
-              only: master
+              only: main
