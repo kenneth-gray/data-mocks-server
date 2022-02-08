@@ -1,3 +1,5 @@
+import { IncomingHttpHeaders } from 'http';
+
 export type DefaultScenario =
   | Mock[]
   | {
@@ -109,4 +111,13 @@ export type Groups = Array<{
 export type CookieValue = {
   context: Context;
   scenarios: string[];
+};
+
+export type InternalRequest = {
+  method: string;
+  headers: Record<string, string>;
+  query: Record<string, string>;
+  path: string;
+  // TODO: Should probably only accept string or object
+  body: any;
 };

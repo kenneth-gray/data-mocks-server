@@ -1,8 +1,13 @@
 import { pathToRegexp, Key } from 'path-to-regexp';
-import { Request, Response } from 'express';
 
 import { createHandler } from './create-handler';
-import { Mock, HttpMock, UpdateContext, GetContext } from './types';
+import {
+  Mock,
+  HttpMock,
+  UpdateContext,
+  GetContext,
+  InternalRequest,
+} from './types';
 
 export { getHttpMocks, getHttpMockAndParams, createHttpRequestHandler };
 
@@ -35,21 +40,18 @@ function createHttpRequestHandler({
   updateContext: UpdateContext;
   getContext: GetContext;
 }) {
-  return (req: Request, res: Response) => {
-    // Matching all routes so need to create params manually
-    req.params = params;
-
+  return (req: InternalRequest) => {
     const handler = createHandler({
       ...httpMock,
       getContext,
       updateContext,
     });
 
-    handler(req, res);
+    return handler({ ...req, params });
   };
 }
 
-function getHttpMockAndParams(req: Request, httpMocks: HttpMock[]) {
+function getHttpMockAndParams(req: InternalRequest, httpMocks: HttpMock[]) {
   for (const httpMock of httpMocks) {
     if (httpMock.method !== req.method) {
       continue;
