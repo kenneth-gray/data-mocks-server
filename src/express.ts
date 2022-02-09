@@ -26,8 +26,8 @@ import {
   Context,
   Scenario,
   PartialContext,
-  CookieValue,
   InternalRequest,
+  Result,
 } from './types';
 import { getUi, updateUi } from './ui';
 import {
@@ -129,11 +129,6 @@ function createExpressApp({
   );
 
   app.use(async (req, res, next) => {
-    const dataMocksServerCookie = getDataMocksServerCookie({
-      getCookie: expressGetCookie(req),
-      defaultScenario,
-    });
-
     const internalRequest: InternalRequest = {
       body: req.body,
       headers: cleanExpressHeaders(req.headers || {}),
@@ -144,23 +139,17 @@ function createExpressApp({
 
     const result = await handleRequest({
       req: internalRequest,
-      getSelectedScenarioIds: getSelectedScenarioIds2(
-        () => dataMocksServerCookie,
-      ),
+      getServerSelectedScenarioIds: () => serverSelectedScenarioIds,
       defaultScenario,
       scenarioMap,
-      getContext: getContext(() => dataMocksServerCookie),
-      setContext: setContext(context => {
-        dataMocksServerCookie.context = context;
-      }),
+      getServerContext: () => serverContext,
+      setServerContext: (context: Context) => {
+        serverContext = context;
+      },
+      cookieMode,
+      getCookie: (cookieName: string) => req.cookies[cookieName],
+      setCookie: expressSetCookie(res),
     });
-
-    if (cookieMode) {
-      setDataMocksServerCookie({
-        setCookie: expressSetCookie(res),
-        value: dataMocksServerCookie,
-      });
-    }
 
     if (result.status === 404) {
       next();
@@ -175,36 +164,6 @@ function createExpressApp({
   });
 
   return app;
-
-  function setContext(setCookieContext: (context: Context) => void) {
-    return (context: Context) => {
-      if (cookieMode) {
-        setCookieContext(context);
-      } else {
-        serverContext = context;
-      }
-    };
-  }
-
-  function getSelectedScenarioIds2(getCookieValue: () => CookieValue) {
-    return () => {
-      if (cookieMode) {
-        return getCookieValue().scenarios;
-      }
-
-      return serverSelectedScenarioIds;
-    };
-  }
-
-  function getContext(getCookieValue: () => CookieValue) {
-    return () => {
-      if (cookieMode) {
-        return getCookieValue().context;
-      }
-
-      return serverContext;
-    };
-  }
 
   function updateScenariosAndContext(
     res: Response,
@@ -296,20 +255,46 @@ function getScenarios({
 
 async function handleRequest({
   req,
-  getSelectedScenarioIds,
+  getServerSelectedScenarioIds,
   defaultScenario,
   scenarioMap,
-  getContext,
-  setContext,
+  getServerContext,
+  setServerContext,
+  getCookie,
+  cookieMode,
+  setCookie,
 }: {
   req: InternalRequest;
-  getSelectedScenarioIds: () => string[];
+  getServerSelectedScenarioIds: () => string[];
   defaultScenario: DefaultScenario;
   scenarioMap: ScenarioMap;
-  getContext: () => Context;
-  setContext: (context: Context) => void;
+  getServerContext: () => Context;
+  setServerContext: (context: Context) => void;
+  getCookie: (cookieName: string) => string;
+  setCookie: (cookieName: string, cookieValue: string) => void;
+  cookieMode: boolean;
 }) {
+  const dataMocksServerCookie = getDataMocksServerCookie({
+    getCookie,
+    defaultScenario,
+  });
+
+  const getSelectedScenarioIds = cookieMode
+    ? () => dataMocksServerCookie.scenarios
+    : getServerSelectedScenarioIds;
+
+  const getContext = cookieMode
+    ? () => dataMocksServerCookie.context
+    : getServerContext;
+
+  const setContext = cookieMode
+    ? (context: Context) => {
+        dataMocksServerCookie.context = context;
+      }
+    : setServerContext;
+
   const selectedScenarioIds = getSelectedScenarioIds();
+
   const selectedScenarios = getScenarios({
     defaultScenario,
     scenarioMap,
@@ -320,6 +305,9 @@ async function handleRequest({
 
   const graphQlMock = getGraphQlMock(req.path, graphQlMocks);
 
+  // Default when nothing matches
+  let result: Result = { status: 404 };
+
   if (graphQlMock) {
     const requestHandler = createGraphQlRequestHandler({
       graphQlMock,
@@ -327,22 +315,26 @@ async function handleRequest({
       getContext,
     });
 
-    return requestHandler(req);
+    result = await requestHandler(req);
+  } else {
+    const { httpMock, params } = getHttpMockAndParams(req, httpMocks);
+    if (httpMock) {
+      const requestHandler = createHttpRequestHandler({
+        httpMock,
+        params,
+        getContext,
+        updateContext: localUpdateContext,
+      });
+
+      result = await requestHandler(req);
+    }
   }
 
-  const { httpMock, params } = getHttpMockAndParams(req, httpMocks);
-  if (httpMock) {
-    const requestHandler = createHttpRequestHandler({
-      httpMock,
-      params,
-      getContext,
-      updateContext: localUpdateContext,
-    });
-
-    return requestHandler(req);
+  if (cookieMode) {
+    setDataMocksServerCookie({ setCookie, value: dataMocksServerCookie });
   }
 
-  return { status: 404 };
+  return result;
 
   function localUpdateContext(partialContext: PartialContext) {
     const newContext = updateContext(getContext(), partialContext);
@@ -351,10 +343,6 @@ async function handleRequest({
 
     return newContext;
   }
-}
-
-function expressGetCookie(req: Request) {
-  return (cookieName: string) => req.cookies[cookieName];
 }
 
 function expressSetCookie(res: Response) {

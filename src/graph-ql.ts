@@ -8,15 +8,10 @@ import {
   UpdateContext,
   GetContext,
   InternalRequest,
+  Result,
 } from './types';
 
 export { getGraphQlMocks, getGraphQlMock, createGraphQlRequestHandler };
-
-type Result = {
-  status: number;
-  headers?: Record<string, string>;
-  response?: any;
-};
 
 type GraphQlHandler = (req: {
   operationType: 'query' | 'mutation';

@@ -1,4 +1,8 @@
-import { IncomingHttpHeaders } from 'http';
+export type Result = {
+  status: number;
+  headers?: Record<string, string>;
+  response?: any;
+};
 
 export type DefaultScenario =
   | Mock[]
