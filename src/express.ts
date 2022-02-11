@@ -131,7 +131,7 @@ function createExpressApp({
   app.use(async (req, res, next) => {
     const internalRequest: InternalRequest = {
       body: req.body,
-      headers: cleanExpressHeaders(req.headers || {}),
+      headers: expressCleanHeaders(req.headers || {}),
       method: req.method,
       path: req.path,
       query: req.query || {},
@@ -351,7 +351,7 @@ function expressSetCookie(res: Response) {
   };
 }
 
-function cleanExpressHeaders(
+function expressCleanHeaders(
   headers: Request['headers'],
 ): Record<string, string> {
   return Object.fromEntries(
