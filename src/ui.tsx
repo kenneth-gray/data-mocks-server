@@ -1,79 +1,143 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { RequestHandler, Request, Response } from 'express';
 
-import { ScenarioMap } from './types';
+import {
+  Context,
+  DefaultScenario,
+  GetCookie,
+  ScenarioMap,
+  SetCookie,
+} from './types';
 import { Html } from './Html';
 import { getAllScenarios } from './utils/get-all-scenarios';
+import { updateScenariosAndContext } from './utils/update-scenarios-and-context';
+import { getScenarioIdsFromCookie } from './cookies';
+import { getContextFromScenarios } from './utils/get-context-from-scenarios';
 
 export { getUi, updateUi };
 
 function getUi({
   uiPath,
   scenarioMap,
-  getSelectedScenarioIds,
+  cookieMode,
+  getCookie,
+  setCookie,
+  defaultScenario,
+  getServerSelectedScenarioIds,
 }: {
   uiPath: string;
   scenarioMap: ScenarioMap;
-  getSelectedScenarioIds: (req: Request, res: Response) => string[];
-}): RequestHandler {
-  return (req: Request, res: Response) => {
-    const selectedScenarioIds = getSelectedScenarioIds(req, res);
-    const { groups, other } = getAllScenarios(scenarioMap, selectedScenarioIds);
+  cookieMode: boolean;
+  getCookie: GetCookie;
+  setCookie: SetCookie;
+  defaultScenario: DefaultScenario;
+  getServerSelectedScenarioIds: () => string[];
+}) {
+  const selectedScenarioIds = getSelectedScenarioIdsV2({
+    cookieMode,
+    getCookie,
+    setCookie,
+    defaultScenario,
+    getServerSelectedScenarioIds,
+  });
+  const { groups, other } = getAllScenarios(scenarioMap, selectedScenarioIds);
 
-    const html = renderToStaticMarkup(
-      <Html uiPath={uiPath} groups={groups} other={other} />,
-    );
+  const html = renderToStaticMarkup(
+    <Html uiPath={uiPath} groups={groups} other={other} />,
+  );
 
-    res.send('<!DOCTYPE html>\n' + html);
-  };
+  return '<!DOCTYPE html>\n' + html;
+}
+
+function getSelectedScenarioIdsV2({
+  cookieMode,
+  getCookie,
+  setCookie,
+  defaultScenario,
+  getServerSelectedScenarioIds,
+}: {
+  cookieMode: boolean;
+  getCookie: GetCookie;
+  setCookie: SetCookie;
+  defaultScenario: DefaultScenario;
+  getServerSelectedScenarioIds: () => string[];
+}) {
+  if (cookieMode) {
+    return getScenarioIdsFromCookie({
+      getCookie,
+      setCookie,
+      defaultValue: {
+        context: getContextFromScenarios([defaultScenario]),
+        scenarios: [],
+      },
+    });
+  }
+
+  return getServerSelectedScenarioIds();
 }
 
 function updateUi({
   uiPath,
   groupNames,
   scenarioNames,
+  updatedScenarioIds,
+  buttonType,
   scenarioMap,
-  updateScenariosAndContext,
+  groupScenario,
+  cookieMode,
+  defaultScenario,
+  setCookie,
+  setServerContext,
+  setServerSelectedScenarioIds,
 }: {
   uiPath: string;
   groupNames: string[];
   scenarioNames: string[];
+  updatedScenarioIds: string[];
+  buttonType: 'modify' | 'reset';
   scenarioMap: ScenarioMap;
-  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
-}): RequestHandler {
-  return (req: Request, res: Response) => {
-    const {
-      body: { scenarios: scenariosBody, button, ...rest },
-    } = req;
-    let updatedScenarios: string[] = [];
+  groupScenario: Record<string, string>;
+  cookieMode: boolean;
+  defaultScenario: DefaultScenario;
+  setCookie: SetCookie;
+  setServerContext: (context: Context) => void;
+  setServerSelectedScenarioIds: (selectedScenarioIds: string[]) => void;
+}) {
+  let updatedScenarios: string[] = [];
 
-    if (button === 'modify') {
-      updatedScenarios = groupNames
-        .reduce<string[]>((result, groupName) => {
-          if (rest[groupName]) {
-            result.push(rest[groupName]);
-          }
+  if (buttonType === 'modify') {
+    updatedScenarios = groupNames
+      .reduce<string[]>((result, groupName) => {
+        if (groupScenario[groupName]) {
+          result.push(groupScenario[groupName]);
+        }
 
-          return result;
-        }, [])
-        .concat(scenariosBody == null ? [] : scenariosBody)
-        .filter(scenarioName => scenarioNames.includes(scenarioName));
-    }
+        return result;
+      }, [])
+      .concat(updatedScenarioIds == null ? [] : updatedScenarioIds)
+      .filter(scenarioName => scenarioNames.includes(scenarioName));
+  }
 
-    updateScenariosAndContext(res, updatedScenarios);
+  updateScenariosAndContext({
+    updatedScenarioIds: updatedScenarios,
+    scenarioMap,
+    cookieMode,
+    defaultScenario,
+    setCookie,
+    setServerContext,
+    setServerSelectedScenarioIds,
+  });
 
-    const { groups, other } = getAllScenarios(scenarioMap, updatedScenarios);
+  const { groups, other } = getAllScenarios(scenarioMap, updatedScenarios);
 
-    const html = renderToStaticMarkup(
-      <Html
-        uiPath={uiPath}
-        groups={groups}
-        other={other}
-        updatedScenarios={updatedScenarios}
-      />,
-    );
+  const html = renderToStaticMarkup(
+    <Html
+      uiPath={uiPath}
+      groups={groups}
+      other={other}
+      updatedScenarios={updatedScenarios}
+    />,
+  );
 
-    res.send('<!DOCTYPE html>\n' + html);
-  };
+  return '<!DOCTYPE html>\n' + html;
 }

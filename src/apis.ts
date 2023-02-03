@@ -1,15 +1,15 @@
-import { getScenarioIdsFromCookie, setDataMocksServerCookie } from './cookies';
+import { getScenarioIdsFromCookie } from './cookies';
 import {
   Context,
   DefaultScenario,
   GetCookie,
   Result,
-  Scenario,
   ScenarioMap,
   SetCookie,
 } from './types';
 import { getAllScenarios } from './utils/get-all-scenarios';
 import { getContextFromScenarios } from './utils/get-context-from-scenarios';
+import { updateScenariosAndContext } from './utils/update-scenarios-and-context';
 
 export { resetScenarios, modifyScenarios, getScenarios };
 
@@ -41,46 +41,6 @@ function resetScenarios({
   return {
     status: 204,
   };
-}
-
-function updateScenariosAndContext({
-  updatedScenarioIds,
-  setCookie,
-  setServerContext,
-  setServerSelectedScenarioIds,
-  defaultScenario,
-  scenarioMap,
-  cookieMode,
-}: {
-  updatedScenarioIds: string[];
-  setCookie: SetCookie;
-  setServerContext: (context: Context) => void;
-  setServerSelectedScenarioIds: (selectedScenarioIds: string[]) => void;
-  defaultScenario: DefaultScenario;
-  scenarioMap: ScenarioMap;
-  cookieMode: boolean;
-}) {
-  const updatedScenarios = getScenariosInternal({
-    defaultScenario,
-    scenarioMap,
-    scenarioIds: updatedScenarioIds,
-  });
-  const context = getContextFromScenarios(updatedScenarios);
-
-  if (cookieMode) {
-    setDataMocksServerCookie({
-      setCookie,
-      value: {
-        context,
-        scenarios: updatedScenarioIds,
-      },
-    });
-
-    return;
-  }
-
-  setServerContext(context);
-  setServerSelectedScenarioIds(updatedScenarioIds);
 }
 
 function getScenarios({
@@ -195,20 +155,6 @@ function modifyScenarios({
   });
 
   return { status: 204 };
-}
-
-function getScenariosInternal({
-  defaultScenario,
-  scenarioMap,
-  scenarioIds,
-}: {
-  defaultScenario: DefaultScenario;
-  scenarioMap: ScenarioMap;
-  scenarioIds: string[];
-}): Scenario[] {
-  return [defaultScenario].concat(
-    scenarioIds.map(scenarioId => scenarioMap[scenarioId]),
-  );
 }
 
 function getSelectedScenarioIds({

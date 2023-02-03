@@ -8,12 +8,10 @@ import {
   ScenarioMap,
   DefaultScenario,
   Context,
-  Scenario,
   InternalRequest,
   Result,
 } from './types';
 import { getUi, updateUi } from './ui';
-import { getScenarioIdsFromCookie, setDataMocksServerCookie } from './cookies';
 import { getContextFromScenarios } from './utils/get-context-from-scenarios';
 import { handleRequest } from './handle-request';
 import {
@@ -69,24 +67,40 @@ function createExpressApp({
   app.use(express.json());
   app.use(express.text({ type: 'application/graphql' }));
 
-  app.get(
-    uiPath,
-    getUi({
+  app.get(uiPath, (req, res) => {
+    const html = getUi({
       uiPath,
       scenarioMap,
-      getSelectedScenarioIds,
-    }),
-  );
+      cookieMode,
+      defaultScenario,
+      getCookie: expressGetCookie(req),
+      getServerSelectedScenarioIds,
+      setCookie: expressSetCookie(res),
+    });
+
+    res.send(html);
+  });
 
   app.post(
     uiPath,
-    updateUi({
-      uiPath,
-      groupNames,
-      scenarioNames: scenarioIds,
-      scenarioMap,
-      updateScenariosAndContext,
-    }),
+    ({ body: { scenarios: scenariosBody, button, ...rest } }, res) => {
+      const html = updateUi({
+        uiPath,
+        groupNames,
+        scenarioNames: scenarioIds,
+        updatedScenarioIds: scenariosBody,
+        buttonType: button,
+        scenarioMap,
+        cookieMode,
+        defaultScenario,
+        setCookie: expressSetCookie(res),
+        setServerContext,
+        setServerSelectedScenarioIds,
+        groupScenario: rest,
+      });
+
+      res.send(html);
+    },
   );
 
   app.put(
@@ -124,7 +138,7 @@ function createExpressApp({
     const result = apiGetScenarios({
       getCookie: expressGetCookie(req),
       setCookie: expressSetCookie(res),
-      getServerSelectedScenarioIds: () => serverSelectedScenarioIds,
+      getServerSelectedScenarioIds,
       cookieMode,
       defaultScenario,
       scenarioMap,
@@ -144,13 +158,11 @@ function createExpressApp({
 
     const result = await handleRequest({
       req: internalRequest,
-      getServerSelectedScenarioIds: () => serverSelectedScenarioIds,
+      getServerSelectedScenarioIds,
       defaultScenario,
       scenarioMap,
       getServerContext: () => serverContext,
-      setServerContext: (context: Context) => {
-        serverContext = context;
-      },
+      setServerContext,
       cookieMode,
       getCookie: expressGetCookie(req),
       setCookie: expressSetCookie(res),
@@ -161,47 +173,7 @@ function createExpressApp({
 
   return app;
 
-  function updateScenariosAndContext(
-    res: Response,
-    updatedScenarioNames: string[],
-  ) {
-    const updatedScenarios = getScenarios({
-      defaultScenario,
-      scenarioMap,
-      scenarioIds: updatedScenarioNames,
-    });
-    const context = getContextFromScenarios(updatedScenarios);
-
-    if (cookieMode) {
-      setDataMocksServerCookie({
-        setCookie: expressSetCookie(res),
-        value: {
-          context,
-          scenarios: updatedScenarioNames,
-        },
-      });
-
-      return;
-    }
-
-    serverContext = context;
-    serverSelectedScenarioIds = updatedScenarioNames;
-
-    return updatedScenarioNames;
-  }
-
-  function getSelectedScenarioIds(req: Request, res: Response) {
-    if (cookieMode) {
-      return getScenarioIdsFromCookie({
-        getCookie: expressGetCookie(req),
-        setCookie: expressSetCookie(res),
-        defaultValue: {
-          context: getContextFromScenarios([defaultScenario]),
-          scenarios: [],
-        },
-      });
-    }
-
+  function getServerSelectedScenarioIds() {
     return serverSelectedScenarioIds;
   }
 
@@ -212,20 +184,6 @@ function createExpressApp({
   function setServerSelectedScenarioIds(selectedScenarioIds: string[]) {
     serverSelectedScenarioIds = selectedScenarioIds;
   }
-}
-
-function getScenarios({
-  defaultScenario,
-  scenarioMap,
-  scenarioIds,
-}: {
-  defaultScenario: DefaultScenario;
-  scenarioMap: ScenarioMap;
-  scenarioIds: string[];
-}): Scenario[] {
-  return [defaultScenario].concat(
-    scenarioIds.map(scenarioId => scenarioMap[scenarioId]),
-  );
 }
 
 function expressSetCookie(res: Response) {
