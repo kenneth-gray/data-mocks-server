@@ -40,7 +40,7 @@ run({
     {
       url: '/api/test-me',
       method: 'GET',
-      response: { blue: 'yoyo' },
+      response: { data: { blue: 'yoyo' } },
     },
   ],
   scenarios: {
@@ -48,7 +48,7 @@ run({
       {
         url: '/api/test-me',
         method: 'GET',
-        response: { blue: 'cheese' },
+        response: { data: { blue: 'cheese' } },
       },
     ],
   },
@@ -123,22 +123,26 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 ### HttpMock
 
-> `{ url, method, response, responseCode, responseHeaders, responseDelay }`
+> `{ url, method, response }`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property        | Type                                                  | Default         | Description                                                                                                                                                                                                        |
-| --------------- | ----------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| url             | `string` / `RegExp`                                   | _required_      | Path of endpoint. Must start with `/`.                                                                                                                                                                             |
-| method          | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` / `'PATCH'` | _required_      | HTTP method of endpoint.                                                                                                                                                                                           |
-| response        | `undefined` / `Response` / `HttpResponseFunction`     | `undefined`     | [Response](#response), [HttpResponseFunction](#httpresponsefunction).                                                                                                                                              |
-| responseCode    | `number`                                              | `200`           | HTTP status code for response.                                                                                                                                                                                     |
-| responseHeaders | `object` / `undefined`                                | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
-| responseDelay   | `number`                                              | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
+| Property | Type                                                  | Default     | Description                                                           |
+| -------- | ----------------------------------------------------- | ----------- | --------------------------------------------------------------------- |
+| url      | `string` / `RegExp`                                   | _required_  | Path of endpoint. Must start with `/`.                                |
+| method   | `'GET'` / `'POST'` / `'PUT'` / `'DELETE'` / `'PATCH'` | _required_  | HTTP method of endpoint.                                              |
+| response | `undefined` / `Response` / `HttpResponseFunction`     | `undefined` | [Response](#response), [HttpResponseFunction](#httpresponsefunction). |
 
 ### Response
 
-> `null` / `string` / `object`
+> `{ status, headers, data, delay }`
+
+| Property | Type                         | Default         | Description                                                                                                                                                                                                        |
+| -------- | ---------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| status   | `number`                     | `200`           | HTTP status code for response.                                                                                                                                                                                     |
+| headers  | `object` / `undefined`       | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
+| data     | `null` / `string` / `object` | `undefined`     | Response data                                                                                                                                                                                                      |
+| delay    | `number`                     | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
 
 ### HttpResponseFunction
 
@@ -146,14 +150,14 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property      | Type                                  | Default                            | Description                                                                                                       |
-| ------------- | ------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| query         | `object`                              | `{}`                               | query object as defined by `express`.                                                                             |
-| body          | `object`                              | `{}`                               | body object as defined by `express`.                                                                              |
-| params        | `object`                              | `{}`                               | params object as defined by `express`.                                                                            |
-| context       | `object`                              | `{}`                               | Data stored across API calls.                                                                                     |
-| updateContext | `Function`                            | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
-| response      | `undefined` / `Response` / `Override` | _required_                         | [Response](#response), [Override](#override).                                                                     |
+| Property      | Type                     | Default                            | Description                                                                                                       |
+| ------------- | ------------------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| query         | `object`                 | `{}`                               | query object as defined by `express`.                                                                             |
+| body          | `object`                 | `{}`                               | body object as defined by `express`.                                                                              |
+| params        | `object`                 | `{}`                               | params object as defined by `express`.                                                                            |
+| context       | `object`                 | `{}`                               | Data stored across API calls.                                                                                     |
+| updateContext | `Function`               | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
+| response      | `undefined` / `Response` | _required_                         | [Response](#response).                                                                                            |
 
 ### GraphQlMock
 
@@ -169,22 +173,26 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 #### Operation
 
-> `{ type, name, response, responseCode, responseHeaders, responseDelay }`
+> `{ type, name, response }`
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property        | Type                                                                     | Default         | Description                                                                                                                                                                                                        |
-| --------------- | ------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| type            | `'query'` / `'mutation'`                                                 | _required_      | Type of operation.                                                                                                                                                                                                 |
-| name            | `string`                                                                 | _required_      | Name of operation.                                                                                                                                                                                                 |
-| response        | `undefined` / `Response` / `GraphQlResponse` / `GraphQlResponseFunction` | `undefined`     | [Response](#response), [GraphQlResponse](#graphqlresponse), [GraphQlResponseFunction](#graphqlresponsefunction).                                                                                                   |
-| responseCode    | `number`                                                                 | `200`           | HTTP status code for response.                                                                                                                                                                                     |
-| responseHeaders | `object` / `undefined`                                                   | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
-| responseDelay   | `number`                                                                 | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
+| Property | Type                                                        | Default     | Description                                                                               |
+| -------- | ----------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| type     | `'query'` / `'mutation'`                                    | _required_  | Type of operation.                                                                        |
+| name     | `string`                                                    | _required_  | Name of operation.                                                                        |
+| response | `undefined` / `GraphQlResponse` / `GraphQlResponseFunction` | `undefined` | [GraphQlResponse](#graphqlresponse), [GraphQlResponseFunction](#graphqlresponsefunction). |
 
 ### GraphQlResponse
 
-> `{ data?: null / object, errors?: array }`
+> `{ status, headers, data, delay }`
+
+| Property | Type                                       | Default         | Description                                                                                                                                                                                                        |
+| -------- | ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| status   | `number`                                   | `200`           | HTTP status code for response.                                                                                                                                                                                     |
+| headers  | `object` / `undefined`                     | See description | Key/value pairs of HTTP headers for response. Defaults to `undefined` when response is `undefined`, adds `'Content-Type': 'application/json'` when response is not `undefined` and `Content-Type` is not supplied. |
+| data     | `{ data?: null / object, errors?: array }` | `undefined`     | Response data                                                                                                                                                                                                      |
+| delay    | `number`                                   | `0`             | Number of milliseconds before the response is returned.                                                                                                                                                            |
 
 ### GraphQlResponseFunction
 
@@ -192,18 +200,16 @@ See [HttpMock](#httpmock) and [GraphQlMock](#graphqlmock) for more details.
 
 <!-- https://www.tablesgenerator.com/markdown_tables -->
 
-| Property      | Type                                                      | Default                            | Description                                                                                                       |
-| ------------- | --------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| variables     | `object`                                                  | `{}`                               | variables sent by client.                                                                                         |
-| context       | `object`                                                  | `{}`                               | Data stored across API calls.                                                                                     |
-| updateContext | `Function`                                                | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
-| response      | `undefined` / `Response` / `GraphQlResponse` / `Override` | _required_                         | [Response](#response), [GraphQlResponse](#graphqlresponse), [Override](#override).                                |
+| Property      | Type                            | Default                            | Description                                                                                                       |
+| ------------- | ------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| variables     | `object`                        | `{}`                               | variables sent by client.                                                                                         |
+| context       | `object`                        | `{}`                               | Data stored across API calls.                                                                                     |
+| updateContext | `Function`                      | `partialContext => updatedContext` | Used to update context. `partialContext` can either be an `object` or a function (`context` => `partialContext`). |
+| response      | `undefined` / `GraphQlResponse` | _required_                         | [GraphQlResponse](#graphqlresponse).                                                                              |
 
-### Override
+### Allowing for multiple responses
 
-> `{ __override: { response, responseCode, responseHeaders, responseDelay } }`
-
-Sometimes you may want an endpoint to respond with different status codes depending on what is sent. It is the recommendation of this package that this can be achieved by using scenarios. However, as an escape hatch you can override `responseCode`, `responseHeaders` and `responseDelay` by using the `__override` property:
+Sometimes you may want an endpoint to respond with different status codes depending on what is sent. It is the recommendation of this package that this can be achieved by using scenarios. However, given `response` can be a function, it is possible to respond with a different value for the `status`, `headers`, `data` and `delay` properties:
 
 ```javascript
 const mock = {
@@ -212,35 +218,29 @@ const mock = {
   response: ({ body }) => {
     if (body.name === 'error1') {
       return {
-        __override: {
-          response: { message: 'something went wrong' },
-          responseCode: 400,
-          responseDelay: 1000,
-        },
+        status: 400,
+        data: { message: 'something went wrong' },
+        delay: 1000,
       };
     }
 
     if (body.name === 'error2') {
       return {
-        __override: {
-          response: { message: 'something else went wrong' },
-          responseCode: 500,
-          responseDelay: 2000,
-        },
+        status: 500,
+        data: { message: 'something else went wrong' },
+        delay: 2000,
       };
     }
 
     if (body.name === 'notFound') {
       return {
-        __override: {
-          response: { message: 'no data here' },
-          responseCode: 404,
-        },
+        status: 404,
+        data: { message: 'no data here' },
       };
     }
 
-    // No __override necessary, this is the response on success
-    return { message: 'success' };
+    // Default status is 200
+    return { data: { message: 'success' } };
   },
 };
 ```

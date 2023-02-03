@@ -3,25 +3,29 @@ import {
   MockResponse,
   UpdateContext,
   ResponseFunction,
-  Override,
   GetContext,
 } from './types';
 
 export { createHandler };
 
+const DEFAULT_STATUS = 200;
+const DEFAULT_DELAY = 0;
+
 function createHandler<TInput, TResponse>({
-  response,
-  responseCode = 200,
-  responseHeaders,
-  responseDelay = 0,
+  response = { status: DEFAULT_STATUS, delay: DEFAULT_DELAY },
   updateContext,
   getContext,
-}: ResponseProps<MockResponse<TInput, TResponse>> & {
+}: ResponseProps<TInput, TResponse> & {
   updateContext: UpdateContext;
   getContext: GetContext;
 }) {
   return async (req: TInput) => {
-    const actualResponse = isResponseFunction(response)
+    let {
+      status = DEFAULT_STATUS,
+      headers = {},
+      data,
+      delay = DEFAULT_DELAY,
+    } = isResponseFunction(response)
       ? await response({
           ...req,
           updateContext,
@@ -29,43 +33,22 @@ function createHandler<TInput, TResponse>({
         })
       : response;
 
-    let responseCollection: {
-      response?: any;
-      responseDelay: number;
-      responseHeaders: Record<string, string>;
-      responseCode: number;
-    } = {
-      responseDelay,
-      responseHeaders: lowerCaseKeys(responseHeaders || {}),
-      responseCode,
-    };
+    headers = lowerCaseKeys(headers);
 
-    if (isOverride(actualResponse)) {
-      responseCollection = {
-        ...responseCollection,
-        ...actualResponse.__override,
-      };
-    } else {
-      responseCollection.response = actualResponse;
-    }
-
-    await addDelay(responseCollection.responseDelay);
+    await addDelay(delay);
 
     // Default repsonses to JSON when there's no content-type header
-    if (
-      responseCollection.response !== undefined &&
-      !responseCollection.responseHeaders['content-type']
-    ) {
-      responseCollection.responseHeaders = {
-        ...responseCollection.responseHeaders,
+    if (data !== undefined && !headers['content-type']) {
+      headers = {
+        ...headers,
         'content-type': 'application/json',
       };
     }
 
     return {
-      status: responseCollection.responseCode,
-      response: responseCollection.response,
-      headers: responseCollection.responseHeaders,
+      status,
+      response: data,
+      headers,
     };
   };
 }
@@ -74,19 +57,8 @@ function addDelay(responseDelay: number) {
   return new Promise(res => setTimeout(res, responseDelay));
 }
 
-function isOverride<TResponse>(
-  response: TResponse | Override<TResponse> | undefined,
-): response is Override<TResponse> {
-  return (
-    response !== null &&
-    typeof response === 'object' &&
-    (response as Override<TResponse>).__override &&
-    Object.keys(response).length === 1
-  );
-}
-
 function isResponseFunction<TInput, TResponse>(
-  response: MockResponse<TInput, TResponse> | undefined,
+  response: MockResponse<TInput, TResponse>,
 ): response is ResponseFunction<TInput, TResponse> {
   return typeof response === 'function';
 }

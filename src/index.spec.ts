@@ -82,27 +82,27 @@ describe('run', () => {
           {
             url: '/test-me',
             method: 'GET',
-            response: expectedGetResponse,
+            response: { data: expectedGetResponse },
           },
           {
             url: '/test-me',
             method: 'POST',
-            response: expectedPostResponse,
+            response: { data: expectedPostResponse },
           },
           {
             url: '/test-me',
             method: 'PUT',
-            response: expectedPutResponse,
+            response: { data: expectedPutResponse },
           },
           {
             url: '/test-me',
             method: 'DELETE',
-            response: expectedDeleteResponse,
+            response: { data: expectedDeleteResponse },
           },
           {
             url: '/test-me',
             method: 'PATCH',
-            response: expectedPatchResponse,
+            response: { data: expectedPatchResponse },
           },
         ],
       });
@@ -137,8 +137,9 @@ describe('run', () => {
           {
             url: '/test-me',
             method: 'GET',
-            responseDelay,
-            response: {},
+            response: {
+              delay: responseDelay,
+            },
           },
         ],
       });
@@ -163,9 +164,11 @@ describe('run', () => {
             url: '/test-function/:id',
             method: 'POST',
             response: ({ body, query, params }) => ({
-              body,
-              query,
-              params,
+              data: {
+                body,
+                query,
+                params,
+              },
             }),
           },
         ],
@@ -197,9 +200,11 @@ describe('run', () => {
             url: '/test-function/:id',
             method: 'POST',
             response: async ({ body, query, params }) => ({
-              body,
-              query,
-              params,
+              data: {
+                body,
+                query,
+                params,
+              },
             }),
           },
         ],
@@ -239,7 +244,7 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'Person',
-                response: expectedResponse,
+                response: { data: expectedResponse },
               },
             ],
           },
@@ -281,7 +286,9 @@ describe('run', () => {
                 name: 'Person',
                 response: ({ variables }) => ({
                   data: {
-                    variables,
+                    data: {
+                      variables,
+                    },
                   },
                 }),
               },
@@ -325,7 +332,7 @@ describe('run', () => {
               {
                 type: 'query',
                 name: operationName,
-                response: expectedResponse,
+                response: { data: expectedResponse },
               },
             ],
           },
@@ -364,7 +371,7 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'Person',
-                response: expectedResponse,
+                response: { data: expectedResponse },
               },
             ],
           },
@@ -406,7 +413,9 @@ describe('run', () => {
                 name: 'Person',
                 response: ({ variables }) => ({
                   data: {
-                    variables,
+                    data: {
+                      variables,
+                    },
                   },
                 }),
               },
@@ -449,7 +458,7 @@ describe('run', () => {
               {
                 type: 'query',
                 name: operationName,
-                response: expectedResponse,
+                response: { data: expectedResponse },
               },
             ],
           },
@@ -484,7 +493,6 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'Query',
-                response: {},
               },
             ],
           },
@@ -532,12 +540,12 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'User',
-                response: expectedResponse1,
+                response: { data: expectedResponse1 },
               },
               {
                 type: 'mutation',
                 name: 'User',
-                response: expectedResponse2,
+                response: { data: expectedResponse2 },
               },
             ],
           },
@@ -583,7 +591,7 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'GetUser',
-                response: expectedResponse,
+                response: { data: expectedResponse },
               },
             ],
           },
@@ -631,8 +639,10 @@ describe('run', () => {
                 name: 'GetAccount',
                 response: {
                   data: {
-                    account: {
-                      id: '111222',
+                    data: {
+                      account: {
+                        id: '111222',
+                      },
                     },
                   },
                 },
@@ -705,12 +715,12 @@ describe('run', () => {
               {
                 type: 'query',
                 name: 'GetAccount',
-                response: { data: { account: { id: '333444' } } },
+                response: { data: { data: { account: { id: '333444' } } } },
               },
               {
                 type: 'query',
                 name: 'GetUser',
-                response: { data: { user: { name: 'Holly' } } },
+                response: { data: { data: { user: { name: 'Holly' } } } },
               },
             ],
           },
@@ -765,7 +775,7 @@ describe('run', () => {
           {
             url: '/api/test',
             method: 'GET',
-            response: null,
+            response: { data: null },
           },
         ],
       });
@@ -785,7 +795,7 @@ describe('run', () => {
           {
             url: '/api/test',
             method: 'GET',
-            response: {},
+            response: { data: {} },
           },
         ],
       });
@@ -806,9 +816,11 @@ describe('run', () => {
           {
             url: '/api/test',
             method: 'GET',
-            response: {},
-            responseHeaders: {
-              'Made-Up': 'Header',
+            response: {
+              data: {},
+              headers: {
+                'Made-Up': 'Header',
+              },
             },
           },
         ],
@@ -831,9 +843,10 @@ describe('run', () => {
           {
             url: '/api/test',
             method: 'GET',
-            response: {},
-            responseHeaders: {
-              'Content-Type': 'text/*',
+            response: {
+              headers: {
+                'Content-Type': 'text/*',
+              },
             },
           },
         ],
@@ -859,7 +872,7 @@ describe('run', () => {
             {
               url: '/user',
               method: 'GET',
-              response: ({ context }) => context.name,
+              response: ({ context }) => ({ data: context.name }),
             },
             {
               url: '/user',
@@ -867,7 +880,7 @@ describe('run', () => {
               response: ({ body: { name }, updateContext }) => {
                 updateContext({ name });
 
-                return name;
+                return { data: name };
               },
             },
           ],
@@ -905,7 +918,7 @@ describe('run', () => {
             {
               url: '/info',
               method: 'GET',
-              response: ({ context }) => context,
+              response: ({ context }) => ({ data: context }),
             },
             {
               url: '/user',
@@ -913,7 +926,7 @@ describe('run', () => {
               response: ({ body: { name }, updateContext }) => {
                 updateContext({ name });
 
-                return name;
+                return { data: name };
               },
             },
           ],
@@ -953,7 +966,7 @@ describe('run', () => {
             {
               url: '/info',
               method: 'GET',
-              response: ({ context }) => context,
+              response: ({ context }) => ({ data: context }),
             },
             {
               url: '/user',
@@ -966,7 +979,7 @@ describe('run', () => {
                   clearInterval(interval);
                 }, timeoutDelayMs);
 
-                return null;
+                return { data: null };
               },
             },
           ],
@@ -1010,7 +1023,7 @@ describe('run', () => {
                   type: 'query',
                   name: 'GetUser',
                   response: ({ context }) => ({
-                    data: { user: { name: context.name } },
+                    data: { data: { user: { name: context.name } } },
                   }),
                 },
                 {
@@ -1020,7 +1033,7 @@ describe('run', () => {
                     updateContext({ name });
 
                     return {
-                      data: { updateUser: { name } },
+                      data: { data: { updateUser: { name } } },
                     };
                   },
                 },
@@ -1083,7 +1096,7 @@ describe('run', () => {
           {
             url: '/test-me',
             method: 'GET',
-            response: expectedInitialResponse,
+            response: { data: expectedInitialResponse },
           },
         ],
         scenarios: {
@@ -1091,7 +1104,7 @@ describe('run', () => {
             {
               url: '/test-me',
               method: 'GET',
-              response: expectedResponse,
+              response: { data: expectedResponse },
             },
           ],
         },
@@ -1136,14 +1149,14 @@ describe('run', () => {
             {
               url: '/test-me',
               method: 'GET',
-              response: expectedResponse1,
+              response: { data: expectedResponse1 },
             },
           ],
           test2: [
             {
               url: '/test-me-2',
               method: 'GET',
-              response: expectedResponse2,
+              response: { data: expectedResponse2 },
             },
           ],
         },
@@ -1170,9 +1183,9 @@ describe('run', () => {
     });
 
     it('GraphQL operations on the same URL are merged', async () => {
-      const expectedResponse1 = { a: 1 };
-      const expectedResponse2 = { b: 2 };
-      const expectedResponse3 = { c: 3 };
+      const expectedResponse1 = { data: { a: 1 } };
+      const expectedResponse2 = { data: { b: 2 } };
+      const expectedResponse3 = { data: { c: 3 } };
       const server = run({
         default: [
           {
@@ -1182,12 +1195,11 @@ describe('run', () => {
               {
                 name: 'Query1',
                 type: 'query',
-                response: expectedResponse1,
+                response: { data: expectedResponse1 },
               },
               {
                 name: 'Query2',
                 type: 'query',
-                response: {},
               },
             ],
           },
@@ -1201,7 +1213,7 @@ describe('run', () => {
                 {
                   name: 'Query2',
                   type: 'query',
-                  response: expectedResponse2,
+                  response: { data: expectedResponse2 },
                 },
               ],
             },
@@ -1214,7 +1226,7 @@ describe('run', () => {
                 {
                   name: 'Query3',
                   type: 'query',
-                  response: expectedResponse3,
+                  response: { data: expectedResponse3 },
                 },
               ],
             },
@@ -1309,7 +1321,7 @@ describe('run', () => {
           {
             url: '/test-me',
             method: 'GET',
-            response: initialResponse,
+            response: { data: initialResponse },
           },
         ],
         scenarios: {
@@ -1317,7 +1329,7 @@ describe('run', () => {
             {
               url: '/test-me',
               method: 'GET',
-              response: scenarioResponse,
+              response: { data: scenarioResponse },
             },
           ],
         },
@@ -1359,7 +1371,7 @@ describe('run', () => {
           {
             url: '/test-me',
             method: 'GET',
-            response: initialResponse,
+            response: { data: initialResponse },
           },
         ],
         scenarios: {
@@ -1367,7 +1379,7 @@ describe('run', () => {
             {
               url: '/test-me',
               method: 'GET',
-              response: scenarioResponse,
+              response: { data: scenarioResponse },
             },
           ],
         },
@@ -1430,7 +1442,9 @@ describe('run', () => {
             {
               url: '/user',
               method: 'GET',
-              response: ({ context }) => context.name,
+              response: ({ context }) => ({
+                data: context.name,
+              }),
             },
           ],
         },
@@ -1472,7 +1486,7 @@ describe('run', () => {
             {
               url: '/info',
               method: 'GET',
-              response: ({ context }) => context,
+              response: ({ context }) => ({ data: context }),
             },
           ],
         },
