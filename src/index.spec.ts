@@ -31,6 +31,44 @@ describe('run', () => {
     });
   });
 
+  describe('headers', () => {
+    it('Access-Control-Allow-Credentials set to true', async () => {
+      const server = run({
+        default: [
+          {
+            url: '/test-me',
+            method: 'GET',
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        await rp.get('http://localhost:3000/test-me', (_, response) => {
+          expect(response.headers['access-control-allow-credentials']).toEqual(
+            'true',
+          );
+        });
+      });
+    });
+
+    it('Access-Control-Allow-Origin set to *', async () => {
+      const server = run({
+        default: [
+          {
+            url: '/test-me',
+            method: 'GET',
+          },
+        ],
+      });
+
+      await serverTest(server, async () => {
+        await rp.get('http://localhost:3000/test-me', (_, response) => {
+          expect(response.headers['access-control-allow-origin']).toEqual('*');
+        });
+      });
+    });
+  });
+
   describe('default mocks', () => {
     it('respond as expected', async () => {
       const expectedGetResponse = { get: 'food' };

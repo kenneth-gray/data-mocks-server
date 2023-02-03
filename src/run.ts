@@ -96,7 +96,7 @@ function createExpressApp({
     [],
   );
 
-  app.use(cors());
+  app.use(cors({ credentials: true }));
   app.use(cookieParser());
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
