@@ -97,8 +97,7 @@ function modifyScenarios({
   setServerContext: (context: Context) => void;
   setServerSelectedScenarioIds: (selectedScenarioIds: string[]) => void;
 }) {
-  // TODO: Check what type of individual items are
-  if (!Array.isArray(updatedScenarioIds)) {
+  if (!isStringArray(updatedScenarioIds)) {
     return {
       status: 400,
       headers: {
@@ -111,7 +110,7 @@ function modifyScenarios({
     };
   }
 
-  const scenariosByGroup: { [key: string]: number } = {};
+  const scenariosByGroup: Record<string, string> = {};
   for (const scenario of updatedScenarioIds) {
     if (!scenarioIds.includes(scenario)) {
       return {
@@ -155,6 +154,10 @@ function modifyScenarios({
   });
 
   return { status: 204 };
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string');
 }
 
 function getSelectedScenarioIds({
