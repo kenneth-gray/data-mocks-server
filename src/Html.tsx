@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { UiGroups } from './types';
+import { Groups } from './types';
 
 function Html({
   updatedScenarios,
@@ -9,14 +9,10 @@ function Html({
   other,
 }: {
   uiPath: string;
-  groups: UiGroups;
-  other: Array<{ name: string; checked: boolean }>;
+  groups: Groups;
+  other: Array<{ id: string; selected: boolean }>;
   updatedScenarios?: string[];
 }) {
-  if (uiPath[uiPath.length - 1] !== '/') {
-    uiPath = uiPath + '/';
-  }
-
   return (
     <html lang="en">
       <head>
@@ -25,7 +21,10 @@ function Html({
         <title>
           {updatedScenarios ? 'Updated - ' : ''}Scenarios - Data Mocks Server
         </title>
-        <link rel="stylesheet" href={`${uiPath}index.css`} />
+        <link
+          rel="stylesheet"
+          href={`${uiPath}${uiPath.slice(-1) === '/' ? '' : '/'}index.css`}
+        />
       </head>
       <body>
         <main>
@@ -39,39 +38,45 @@ function Html({
               <a href={uiPath}>Refresh page</a>
             </p>
             <div className="stack0">
-              {groups.map(group => (
-                <fieldset className="stack-3" key={group.name}>
-                  <legend>
-                    <h2 className="group-title">{group.name}</h2>
-                  </legend>
-                  <div className="stack-3">
-                    <div>
-                      <input
-                        type="radio"
-                        id={`none-${group.name}`}
-                        name={group.name}
-                        value=""
-                        defaultChecked={group.noneChecked}
-                      />
-                      <label htmlFor={`none-${group.name}`}>
-                        No &rsquo;{group.name}&rsquo; scenario
-                      </label>
-                    </div>
-                    {group.scenarios.map(scenario => (
-                      <div key={scenario.name}>
+              {groups.map(group => {
+                const noneSelected = group.scenarios.every(
+                  scenario => !scenario.selected,
+                );
+
+                return (
+                  <fieldset className="stack-3" key={group.name}>
+                    <legend>
+                      <h2 className="group-title">{group.name}</h2>
+                    </legend>
+                    <div className="stack-3">
+                      <div>
                         <input
                           type="radio"
-                          id={scenario.name}
+                          id={`none-${group.name}`}
                           name={group.name}
-                          value={scenario.name}
-                          defaultChecked={scenario.checked}
+                          value=""
+                          defaultChecked={noneSelected}
                         />
-                        <label htmlFor={scenario.name}>{scenario.name}</label>
+                        <label htmlFor={`none-${group.name}`}>
+                          No &rsquo;{group.name}&rsquo; scenario
+                        </label>
                       </div>
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
+                      {group.scenarios.map(scenario => (
+                        <div key={scenario.id}>
+                          <input
+                            type="radio"
+                            id={scenario.id}
+                            name={group.name}
+                            value={scenario.id}
+                            defaultChecked={scenario.selected}
+                          />
+                          <label htmlFor={scenario.id}>{scenario.id}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </fieldset>
+                );
+              })}
               {!other.length ? null : (
                 <fieldset className="stack-3">
                   <legend>
@@ -79,15 +84,15 @@ function Html({
                   </legend>
                   <div className="stack-3">
                     {other.map(scenario => (
-                      <div key={scenario.name}>
+                      <div key={scenario.id}>
                         <input
                           type="checkbox"
-                          id={scenario.name}
+                          id={scenario.id}
                           name="scenarios"
-                          value={scenario.name}
-                          defaultChecked={scenario.checked}
+                          value={scenario.id}
+                          defaultChecked={scenario.selected}
                         />
-                        <label htmlFor={scenario.name}>{scenario.name}</label>
+                        <label htmlFor={scenario.id}>{scenario.id}</label>
                       </div>
                     ))}
                   </div>

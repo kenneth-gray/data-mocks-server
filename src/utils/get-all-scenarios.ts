@@ -1,15 +1,18 @@
 import { Groups, ScenarioMap } from '../types';
 
-export { getScenarios };
+export { getAllScenarios };
 
-function getScenarios(scenarioMap: ScenarioMap, selectedScenarios: string[]) {
+function getAllScenarios(
+  scenarioMap: ScenarioMap,
+  selectedScenarios: string[],
+) {
   const { other, ...groupedScenarios } = Object.entries(scenarioMap).reduce<{
     other: string[];
     [key: string]: string[];
   }>(
-    (result, [scenarioName, scenarioMock]) => {
+    (result, [scenarioId, scenarioMock]) => {
       if (Array.isArray(scenarioMock) || scenarioMock.group == null) {
-        result.other.push(scenarioName);
+        result.other.push(scenarioId);
 
         return result;
       }
@@ -20,7 +23,7 @@ function getScenarios(scenarioMap: ScenarioMap, selectedScenarios: string[]) {
         result[group] = [];
       }
 
-      result[group].push(scenarioName);
+      result[group].push(scenarioId);
 
       return result;
     },

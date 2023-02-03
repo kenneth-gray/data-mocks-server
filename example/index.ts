@@ -159,5 +159,6 @@ run({
     uiPath: '/scenarios-ui',
     modifyScenariosPath: '/modify',
     resetScenariosPath: '/reset',
+    cookieMode: true,
   },
 });

@@ -1,4 +1,3 @@
-import { Request, Response, NextFunction } from 'express';
 import gql from 'graphql-tag';
 
 import { createHandler } from './create-handler';
@@ -8,18 +7,17 @@ import {
   Mock,
   UpdateContext,
   GetContext,
+  InternalRequest,
+  Result,
 } from './types';
 
 export { getGraphQlMocks, getGraphQlMock, createGraphQlRequestHandler };
 
-type GraphQlHandler = (
-  req: {
-    operationType: 'query' | 'mutation';
-    operationName: string;
-    variables: Record<string, any>;
-  },
-  res: Response,
-) => boolean;
+type GraphQlHandler = (req: {
+  operationType: 'query' | 'mutation';
+  operationName: string;
+  variables: Record<string, any>;
+}) => Promise<null | Result>;
 
 function getGraphQlMocks(mocks: Mock[]) {
   const initialGraphQlMocks = mocks.filter(
@@ -63,27 +61,24 @@ function createGraphQlHandler({
 }): GraphQlHandler {
   const handler = createHandler(rest);
 
-  return ({ operationType, operationName, variables }, res) => {
+  return async ({ operationType, operationName, variables }) => {
     if (
       operationType === operationTypeToCheck &&
       operationName === operationNameToCheck
     ) {
-      handler(
-        {
-          variables,
-        },
-        res,
-      );
+      const result = await handler({
+        variables,
+      });
 
-      return true;
+      return result;
     }
 
-    return false;
+    return null;
   };
 }
 
 function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: InternalRequest) => {
     const query =
       req.headers['content-type'] === 'application/graphql'
         ? req.body
@@ -93,10 +88,15 @@ function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     try {
       graphqlAst = gql(query);
     } catch (error) {
-      res.status(400).json({
-        message: `query "${query}" is not a valid GraphQL query`,
-      });
-      return;
+      const result = {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        response: { message: `query "${query}" is not a valid GraphQL query` },
+      };
+
+      return result;
     }
 
     const operationTypesAndNames = (graphqlAst.definitions as Array<{
@@ -115,10 +115,17 @@ function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
       !req.body.operationName &&
       !req.query.operationName
     ) {
-      res.status(400).json({
-        message: `query "${query}" is not a valid GraphQL query`,
-      });
-      return;
+      const result = {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        response: {
+          message: `query "${query}" is not a valid GraphQL query`,
+        },
+      };
+
+      return result;
     }
 
     const operationName: string =
@@ -132,10 +139,17 @@ function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     );
 
     if (!operationTypeAndName) {
-      res.status(400).json({
-        message: `operation name "${operationName}" does not exist in GraphQL query`,
-      });
-      return;
+      const result = {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        response: {
+          message: `operation name "${operationName}" does not exist in GraphQL query`,
+        },
+      };
+
+      return result;
     }
 
     const operationType = operationTypeAndName.type;
@@ -149,26 +163,23 @@ function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
     variables = variables || {};
 
     for (const handler of handlers) {
-      const responseHandled = handler(
-        {
-          operationType,
-          operationName,
-          variables,
-        },
-        res,
-      );
+      const result = await handler({
+        operationType,
+        operationName,
+        variables,
+      });
 
-      if (responseHandled) {
-        return;
+      if (result) {
+        return result;
       }
     }
 
-    next();
+    return { status: 404 };
   };
 }
 
-function getGraphQlMock(req: Request, graphqlMocks: GraphQlMock[]) {
-  return graphqlMocks.find(graphQlMock => graphQlMock.url === req.path) || null;
+function getGraphQlMock(path: string, graphqlMocks: GraphQlMock[]) {
+  return graphqlMocks.find(graphQlMock => graphQlMock.url === path) || null;
 }
 
 function getQueries({
@@ -219,8 +230,8 @@ function createGraphQlRequestHandler({
   graphQlMock: GraphQlMock;
   updateContext: UpdateContext;
   getContext: GetContext;
-}) {
-  return (req: Request, res: Response, next: NextFunction) => {
+}): (req: InternalRequest) => Promise<Result> {
+  return req => {
     if (req.method === 'GET') {
       const queries = getQueries({
         graphQlMock,
@@ -229,9 +240,8 @@ function createGraphQlRequestHandler({
       });
 
       const requestHandler = createInternalGraphQlRequestHandler(queries);
-      requestHandler(req, res, next);
 
-      return;
+      return requestHandler(req);
     }
 
     if (req.method === 'POST') {
@@ -245,15 +255,14 @@ function createGraphQlRequestHandler({
         updateContext,
         getContext,
       });
+
       const requestHandler = createInternalGraphQlRequestHandler(
         queries.concat(mutations),
       );
-      requestHandler(req, res, next);
 
-      return;
+      return requestHandler(req);
     }
 
-    // req.method doesn't make sense for GraphQL - default 404 from express
-    next();
+    return Promise.resolve({ status: 404 });
   };
 }

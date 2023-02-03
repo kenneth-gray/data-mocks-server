@@ -1,3 +1,9 @@
+export type Result = {
+  status: number;
+  headers?: Record<string, string>;
+  response?: any;
+};
+
 export type DefaultScenario =
   | Mock[]
   | {
@@ -98,15 +104,6 @@ export type UpdateContext = (partialContext: PartialContext) => Context;
 
 export type GetContext = () => Context;
 
-export type UiGroups = Array<{
-  name: string;
-  noneChecked: boolean;
-  scenarios: Array<{
-    name: string;
-    checked: boolean;
-  }>;
-}>;
-
 export type Groups = Array<{
   name: string;
   scenarios: Array<{
@@ -119,3 +116,15 @@ export type CookieValue = {
   context: Context;
   scenarios: string[];
 };
+
+export type InternalRequest = {
+  method: string;
+  headers: Record<string, string>;
+  query: Record<string, string>;
+  path: string;
+  // TODO: Should probably only accept string or object
+  body: any;
+};
+
+export type GetCookie = (cookieName: string) => string | undefined;
+export type SetCookie = (cookieName: string, cookieValue: string) => void;

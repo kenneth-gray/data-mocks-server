@@ -1,94 +1,75 @@
-import { Response, Request } from 'express';
-import { Context, CookieValue } from './types';
+import { CookieValue, DefaultScenario, GetCookie, SetCookie } from './types';
+import { getContextFromScenarios } from './utils/get-context-from-scenarios';
 
 export {
-  getScenariosFromCookie,
-  getContextFromCookie,
-  setContextAndScenariosCookie,
+  getDataMocksServerCookie,
+  setDataMocksServerCookie,
+  getScenarioIdsFromCookie,
 };
 
 const CONTEXT_AND_SCENARIOS_COOKIE_NAME = 'data-mocks-server';
 
-function setCookie({
-  res,
-  name,
-  value,
-}: {
-  res: Response;
-  name: string;
-  value: CookieValue;
-}) {
-  res.cookie(name, JSON.stringify(value), {
-    encode: String,
-  });
-}
-
-function getCookie({
-  req,
-  res,
-  name,
+function getScenarioIdsFromCookie({
+  getCookie,
+  setCookie,
   defaultValue,
 }: {
-  req: Request;
-  res: Response;
-  name: string;
+  getCookie: GetCookie;
+  setCookie: SetCookie;
   defaultValue: CookieValue;
-}): CookieValue {
-  if (req.cookies[name]) {
+}) {
+  let cookieValue = defaultValue;
+  const cookie = getCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME);
+  if (cookie) {
     try {
-      const value = JSON.parse(req.cookies[name]);
-
-      return value;
+      cookieValue = JSON.parse(cookie);
     } catch (error) {
       // Cookie value was malformed, so needs resetting
-      setCookie({ res, name, value: defaultValue });
+      setCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME, JSON.stringify(cookieValue));
     }
   }
+
+  return cookieValue.scenarios;
+}
+
+function getDataMocksServerCookie({
+  getCookie,
+  defaultScenario,
+}: {
+  getCookie: GetCookie;
+  defaultScenario: DefaultScenario;
+}): CookieValue {
+  const cookie = getCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME);
+
+  if (cookie) {
+    try {
+      const parsedCookie = JSON.parse(cookie);
+
+      // Check that the parsed cookie matches the shape expected
+      if (parsedCookie.context && Array.isArray(parsedCookie.scenarios)) {
+        return parsedCookie;
+      } else {
+        console.error('Cookie value does not match expected shape');
+      }
+    } catch (error) {
+      console.error('Cookie value could not be parsed');
+    }
+  }
+
+  const defaultValue = {
+    scenarios: [],
+    context: getContextFromScenarios([defaultScenario]),
+  };
 
   return defaultValue;
 }
 
-function getScenariosFromCookie({
-  req,
-  res,
-  defaultValue,
+function setDataMocksServerCookie({
+  setCookie,
+  value,
 }: {
-  req: Request;
-  res: Response;
-  defaultValue: CookieValue;
+  setCookie: SetCookie;
+  value: CookieValue;
 }) {
-  return getCookie({
-    req,
-    res,
-    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
-    defaultValue,
-  }).scenarios;
-}
-
-function getContextFromCookie({
-  req,
-  res,
-  defaultValue,
-}: {
-  req: Request;
-  res: Response;
-  defaultValue: CookieValue;
-}) {
-  return getCookie({
-    req,
-    res,
-    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
-    defaultValue,
-  }).context;
-}
-
-function setContextAndScenariosCookie(
-  res: Response,
-  contextAndScenarios: { context: Context; scenarios: string[] },
-) {
-  setCookie({
-    res,
-    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
-    value: contextAndScenarios,
-  });
+  setCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME, JSON.stringify(value));
 }

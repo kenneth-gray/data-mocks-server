@@ -1,77 +1,188 @@
-import { RequestHandler, Response, Request } from 'express';
-import { ScenarioMap } from './types';
-import { getScenarios as utilsGetScenarios } from './utils/get-scenarios';
+import { getScenarioIdsFromCookie } from './cookies';
+import {
+  Context,
+  DefaultScenario,
+  GetCookie,
+  Result,
+  ScenarioMap,
+  SetCookie,
+} from './types';
+import { getAllScenarios } from './utils/get-all-scenarios';
+import { getContextFromScenarios } from './utils/get-context-from-scenarios';
+import { updateScenariosAndContext } from './utils/update-scenarios-and-context';
 
-export { modifyScenarios, resetScenarios, getScenarios };
-
-function modifyScenarios({
-  scenarioNames,
-  scenarioMap,
-  updateScenariosAndContext,
-}: {
-  scenarioNames: string[];
-  scenarioMap: ScenarioMap;
-  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
-}): RequestHandler {
-  return ({ body: { scenarios: scenariosBody } }: Request, res: Response) => {
-    if (!Array.isArray(scenariosBody)) {
-      res.status(400).json({
-        message:
-          '"scenarios" must be an array of scenario names (empty array allowed)',
-      });
-      return;
-    }
-
-    const scenariosByGroup: { [key: string]: number } = {};
-    for (const scenario of scenariosBody) {
-      if (!scenarioNames.includes(scenario)) {
-        res.status(400).json({
-          message: `Scenario "${scenario}" does not exist`,
-        });
-        return;
-      }
-
-      const scenarioMock = scenarioMap[scenario];
-      if (!Array.isArray(scenarioMock) && scenarioMock.group) {
-        const { group } = scenarioMock;
-        if (scenariosByGroup[group]) {
-          res.status(400).json({
-            message: `Scenario "${scenario}" cannot be selected, because scenario "${scenariosByGroup[group]}" from group "${group}" has already been selected`,
-          });
-          return;
-        }
-
-        scenariosByGroup[group] = scenario;
-      }
-    }
-
-    updateScenariosAndContext(res, scenariosBody);
-
-    res.sendStatus(204);
-  };
-}
+export { resetScenarios, modifyScenarios, getScenarios };
 
 function resetScenarios({
-  updateScenariosAndContext,
+  setCookie,
+  setServerContext,
+  setServerSelectedScenarioIds,
+  defaultScenario,
+  scenarioMap,
+  cookieMode,
 }: {
-  updateScenariosAndContext: (res: Response, scenarios: string[]) => void;
-}): RequestHandler {
-  return (_, res: Response) => {
-    updateScenariosAndContext(res, []);
-    res.sendStatus(204);
+  setCookie: SetCookie;
+  setServerContext: (context: Context) => void;
+  setServerSelectedScenarioIds: (selectedScenarioIds: string[]) => void;
+  defaultScenario: DefaultScenario;
+  scenarioMap: ScenarioMap;
+  cookieMode: boolean;
+}): Result {
+  updateScenariosAndContext({
+    updatedScenarioIds: [],
+    setCookie,
+    setServerContext,
+    setServerSelectedScenarioIds,
+    defaultScenario,
+    scenarioMap,
+    cookieMode,
+  });
+
+  return {
+    status: 204,
   };
 }
 
 function getScenarios({
+  getCookie,
+  setCookie,
+  getServerSelectedScenarioIds,
+  cookieMode,
+  defaultScenario,
   scenarioMap,
-  getScenarioNames,
 }: {
+  getCookie: GetCookie;
+  setCookie: SetCookie;
+  getServerSelectedScenarioIds: () => string[];
+  cookieMode: boolean;
+  defaultScenario: DefaultScenario;
   scenarioMap: ScenarioMap;
-  getScenarioNames: (req: Request, res: Response) => string[];
-}): RequestHandler {
-  return (req: Request, res: Response) => {
-    const data = utilsGetScenarios(scenarioMap, getScenarioNames(req, res));
+}): Result {
+  const allScenarios = getAllScenarios(
+    scenarioMap,
+    getSelectedScenarioIds({
+      getCookie,
+      setCookie,
+      getServerSelectedScenarioIds,
+      cookieMode,
+      defaultScenario,
+    }),
+  );
 
-    res.json(data);
+  return {
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+    response: allScenarios,
   };
+}
+
+function modifyScenarios({
+  updatedScenarioIds,
+  scenarioIds,
+  scenarioMap,
+  cookieMode,
+  defaultScenario,
+  setCookie,
+  setServerContext,
+  setServerSelectedScenarioIds,
+}: {
+  updatedScenarioIds: unknown;
+  scenarioIds: string[];
+  scenarioMap: ScenarioMap;
+  cookieMode: boolean;
+  defaultScenario: DefaultScenario;
+  setCookie: SetCookie;
+  setServerContext: (context: Context) => void;
+  setServerSelectedScenarioIds: (selectedScenarioIds: string[]) => void;
+}) {
+  if (!isStringArray(updatedScenarioIds)) {
+    return {
+      status: 400,
+      headers: {
+        'content-type': 'application/json',
+      },
+      response: {
+        message:
+          '"scenarios" must be an array of scenario names (empty array allowed)',
+      },
+    };
+  }
+
+  const scenariosByGroup: Record<string, string> = {};
+  for (const scenario of updatedScenarioIds) {
+    if (!scenarioIds.includes(scenario)) {
+      return {
+        status: 400,
+        headers: {
+          'content-type': 'application/json',
+        },
+        response: {
+          message: `Scenario "${scenario}" does not exist`,
+        },
+      };
+    }
+
+    const scenarioMock = scenarioMap[scenario];
+    if (!Array.isArray(scenarioMock) && scenarioMock.group) {
+      const { group } = scenarioMock;
+      if (scenariosByGroup[group]) {
+        return {
+          status: 400,
+          headers: {
+            'content-type': 'application/json',
+          },
+          response: {
+            message: `Scenario "${scenario}" cannot be selected, because scenario "${scenariosByGroup[group]}" from group "${group}" has already been selected`,
+          },
+        };
+      }
+
+      scenariosByGroup[group] = scenario;
+    }
+  }
+
+  updateScenariosAndContext({
+    cookieMode,
+    defaultScenario,
+    updatedScenarioIds,
+    scenarioMap,
+    setCookie,
+    setServerContext,
+    setServerSelectedScenarioIds,
+  });
+
+  return { status: 204 };
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+function getSelectedScenarioIds({
+  getCookie,
+  setCookie,
+  getServerSelectedScenarioIds,
+  cookieMode,
+  defaultScenario,
+}: {
+  getCookie: GetCookie;
+  setCookie: SetCookie;
+  getServerSelectedScenarioIds: () => string[];
+  cookieMode: boolean;
+  defaultScenario: DefaultScenario;
+}) {
+  if (cookieMode) {
+    return getScenarioIdsFromCookie({
+      getCookie,
+      setCookie,
+      defaultValue: {
+        context: getContextFromScenarios([defaultScenario]),
+        scenarios: [],
+      },
+    });
+  }
+
+  return getServerSelectedScenarioIds();
 }
