@@ -79,7 +79,7 @@ function getSelectedScenarioIdsV2({
 function updateUi({
   uiPath,
   groupNames,
-  scenarioNames,
+  scenarioIds,
   updatedScenarioIds,
   buttonType,
   scenarioMap,
@@ -92,7 +92,7 @@ function updateUi({
 }: {
   uiPath: string;
   groupNames: string[];
-  scenarioNames: string[];
+  scenarioIds: string[];
   updatedScenarioIds: string[];
   buttonType: 'modify' | 'reset';
   scenarioMap: ScenarioMap;
@@ -115,7 +115,7 @@ function updateUi({
         return result;
       }, [])
       .concat(updatedScenarioIds == null ? [] : updatedScenarioIds)
-      .filter(scenarioName => scenarioNames.includes(scenarioName));
+      .filter(scenarioId => scenarioIds.includes(scenarioId));
   }
 
   updateScenariosAndContext({

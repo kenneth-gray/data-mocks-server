@@ -87,7 +87,7 @@ function createExpressApp({
       const html = updateUi({
         uiPath,
         groupNames,
-        scenarioNames: scenarioIds,
+        scenarioIds,
         updatedScenarioIds: scenariosBody,
         buttonType: button,
         scenarioMap,

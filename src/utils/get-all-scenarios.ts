@@ -10,9 +10,9 @@ function getAllScenarios(
     other: string[];
     [key: string]: string[];
   }>(
-    (result, [scenarioName, scenarioMock]) => {
+    (result, [scenarioId, scenarioMock]) => {
       if (Array.isArray(scenarioMock) || scenarioMock.group == null) {
-        result.other.push(scenarioName);
+        result.other.push(scenarioId);
 
         return result;
       }
@@ -23,7 +23,7 @@ function getAllScenarios(
         result[group] = [];
       }
 
-      result[group].push(scenarioName);
+      result[group].push(scenarioId);
 
       return result;
     },
