@@ -12,7 +12,7 @@
     "build": "rimraf lib && tsc -p . && copyfiles -f src/assets/* lib/assets && rimraf lib/*.spec.*",
     "lint": "eslint src --ext ts,tsx && eslint example --ext ts,tsx",
     "example": "nodemon --watch src --watch example --ext ts,tsx,css --exec 'ts-node example'",
-    "semantic-release": "semantic-release -b main",
+    "release": "semantic-release -b main",
     "test": "jest"
   },
   "keywords": [
