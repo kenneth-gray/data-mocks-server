@@ -11,15 +11,17 @@ run({
       {
         url: '/api/test-me',
         method: 'GET',
-        response: { blue: 'yoyo' },
+        response: { data: { blue: 'yoyo' } },
       },
       {
         url: '/api/return/:someId',
         method: 'GET',
         response: ({ query, params }) => {
           return {
-            query,
-            params,
+            data: {
+              query,
+              params,
+            },
           };
         },
       },
@@ -28,8 +30,10 @@ run({
         method: 'POST',
         response: async ({ body, params }) => {
           return {
-            body,
-            params,
+            data: {
+              body,
+              params,
+            },
           };
         },
       },
@@ -42,7 +46,9 @@ run({
             name: 'Cheese',
             response: {
               data: {
-                name: 'Cheddar',
+                data: {
+                  name: 'Cheddar',
+                },
               },
             },
           },
@@ -51,7 +57,9 @@ run({
             name: 'Bread',
             response: {
               data: {
-                name: 'Bread Roll',
+                data: {
+                  name: 'Bread Roll',
+                },
               },
             },
           },
@@ -67,7 +75,9 @@ run({
             response: async ({ variables }) => {
               return {
                 data: {
-                  variables,
+                  data: {
+                    variables,
+                  },
                 },
               };
             },
@@ -77,12 +87,12 @@ run({
       {
         url: '/api/context',
         method: 'GET',
-        response: ({ context }) => context,
+        response: ({ context }) => ({ data: context }),
       },
       {
         url: '/api/context',
         method: 'PUT',
-        response: ({ body, updateContext }) => updateContext(body),
+        response: ({ body, updateContext }) => ({ data: updateContext(body) }),
       },
     ],
   },
@@ -93,7 +103,7 @@ run({
         {
           url: '/api/test-me',
           method: 'GET',
-          response: { blue: 'cheese' },
+          response: { data: { blue: 'cheese' } },
         },
         {
           url: '/api/graphql',
@@ -104,7 +114,9 @@ run({
               name: 'Cheese',
               response: {
                 data: {
-                  name: 'Blue Cheese',
+                  data: {
+                    name: 'Blue Cheese',
+                  },
                 },
               },
             },
@@ -118,7 +130,7 @@ run({
         {
           url: '/api/test-me',
           method: 'GET',
-          response: { red: 'leicester' },
+          response: { data: { red: 'leicester' } },
         },
         {
           url: '/api/graphql',
@@ -129,7 +141,9 @@ run({
               name: 'Cheese',
               response: {
                 data: {
-                  name: 'Red Leicester',
+                  data: {
+                    name: 'Red Leicester',
+                  },
                 },
               },
             },
@@ -149,7 +163,7 @@ run({
       {
         url: '/api/test-me-2',
         method: 'GET',
-        response: { blue: 'tang' },
+        response: { data: { blue: 'tang' } },
       },
     ],
     water: [],
