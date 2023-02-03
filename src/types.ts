@@ -125,3 +125,6 @@ export type InternalRequest = {
   // TODO: Should probably only accept string or object
   body: any;
 };
+
+export type GetCookie = (cookieName: string) => string | undefined;
+export type SetCookie = (cookieName: string, cookieValue: string) => void;

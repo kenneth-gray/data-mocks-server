@@ -17,6 +17,8 @@ import {
   PartialContext,
   InternalRequest,
   Result,
+  GetCookie,
+  SetCookie,
 } from './types';
 import { getDataMocksServerCookie, setDataMocksServerCookie } from './cookies';
 
@@ -80,8 +82,8 @@ async function handleRequest({
   scenarioMap: ScenarioMap;
   getServerContext: () => Context;
   setServerContext: (context: Context) => void;
-  getCookie: (cookieName: string) => string;
-  setCookie: (cookieName: string, cookieValue: string) => void;
+  getCookie: GetCookie;
+  setCookie: SetCookie;
   cookieMode: boolean;
 }) {
   const dataMocksServerCookie = getDataMocksServerCookie({

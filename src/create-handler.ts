@@ -62,13 +62,6 @@ function createHandler<TInput, TResponse>({
       };
     }
 
-    if (
-      responseCollection.responseHeaders['content-type'] === 'application/json'
-    ) {
-      // TODO: This is express specific so shouldn't live here
-      responseCollection.response = JSON.stringify(responseCollection.response);
-    }
-
     return {
       status: responseCollection.responseCode,
       response: responseCollection.response,

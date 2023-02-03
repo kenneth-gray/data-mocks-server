@@ -4,22 +4,23 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 
 import {
-  modifyScenarios,
-  resetScenarios,
-  getScenarios as apiGetScenarios,
-} from './apis';
-import {
   Options,
   ScenarioMap,
   DefaultScenario,
   Context,
   Scenario,
   InternalRequest,
+  Result,
 } from './types';
 import { getUi, updateUi } from './ui';
 import { getScenarioIdsFromCookie, setDataMocksServerCookie } from './cookies';
 import { getContextFromScenarios } from './utils/get-context-from-scenarios';
 import { handleRequest } from './handle-request';
+import {
+  getScenarios as apiGetScenarios,
+  modifyScenarios,
+  resetScenarios,
+} from './apis';
 
 export { createExpressApp };
 
@@ -90,29 +91,49 @@ function createExpressApp({
 
   app.put(
     modifyScenariosPath,
-    modifyScenarios({
-      scenarioNames: scenarioIds,
+    ({ body: { scenarios: updatedScenarioIds } }: Request, res: Response) => {
+      const result = modifyScenarios({
+        cookieMode,
+        defaultScenario,
+        scenarioIds,
+        scenarioMap,
+        setCookie: expressSetCookie(res),
+        setServerContext,
+        setServerSelectedScenarioIds,
+        updatedScenarioIds,
+      });
+
+      expressResponse(res, result);
+    },
+  );
+
+  app.put(resetScenariosPath, (_, res: Response) => {
+    const result = resetScenarios({
+      setCookie: expressSetCookie(res),
+      setServerContext,
+      setServerSelectedScenarioIds,
+      defaultScenario,
       scenarioMap,
-      updateScenariosAndContext,
-    }),
-  );
+      cookieMode,
+    });
 
-  app.put(
-    resetScenariosPath,
-    resetScenarios({
-      updateScenariosAndContext,
-    }),
-  );
+    expressResponse(res, result);
+  });
 
-  app.get(
-    scenariosPath,
-    apiGetScenarios({
+  app.get(scenariosPath, (req: Request, res: Response) => {
+    const result = apiGetScenarios({
+      getCookie: expressGetCookie(req),
+      setCookie: expressSetCookie(res),
+      getServerSelectedScenarioIds: () => serverSelectedScenarioIds,
+      cookieMode,
+      defaultScenario,
       scenarioMap,
-      getSelectedScenarioIds,
-    }),
-  );
+    });
 
-  app.use(async (req, res, next) => {
+    expressResponse(res, result);
+  });
+
+  app.use(async (req, res) => {
     const internalRequest: InternalRequest = {
       body: req.body,
       headers: expressCleanHeaders(req.headers || {}),
@@ -131,20 +152,11 @@ function createExpressApp({
         serverContext = context;
       },
       cookieMode,
-      getCookie: (cookieName: string) => req.cookies[cookieName],
+      getCookie: expressGetCookie(req),
       setCookie: expressSetCookie(res),
     });
 
-    if (result.status === 404) {
-      next();
-
-      return;
-    }
-
-    res
-      .set(result.headers)
-      .status(result.status)
-      .send(result.response);
+    expressResponse(res, result);
   });
 
   return app;
@@ -181,8 +193,8 @@ function createExpressApp({
   function getSelectedScenarioIds(req: Request, res: Response) {
     if (cookieMode) {
       return getScenarioIdsFromCookie({
-        req,
-        res,
+        getCookie: expressGetCookie(req),
+        setCookie: expressSetCookie(res),
         defaultValue: {
           context: getContextFromScenarios([defaultScenario]),
           scenarios: [],
@@ -191,6 +203,14 @@ function createExpressApp({
     }
 
     return serverSelectedScenarioIds;
+  }
+
+  function setServerContext(context: Context) {
+    serverContext = context;
+  }
+
+  function setServerSelectedScenarioIds(selectedScenarioIds: string[]) {
+    serverSelectedScenarioIds = selectedScenarioIds;
   }
 }
 
@@ -214,6 +234,10 @@ function expressSetCookie(res: Response) {
   };
 }
 
+function expressGetCookie(req: Request) {
+  return (cookieName: string) => req.cookies[cookieName];
+}
+
 function expressCleanHeaders(
   headers: Request['headers'],
 ): Record<string, string> {
@@ -223,4 +247,15 @@ function expressCleanHeaders(
         typeof keyValuePair[1] === 'string',
     ),
   );
+}
+
+function expressResponse(res: Response, { status, headers, response }: Result) {
+  res
+    .set(headers)
+    .status(status)
+    .send(
+      headers && headers['content-type'] === 'application/json'
+        ? JSON.stringify(response)
+        : response,
+    );
 }

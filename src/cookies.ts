@@ -1,76 +1,42 @@
-import { Response, Request } from 'express';
-import { CookieValue, DefaultScenario } from './types';
+import { CookieValue, DefaultScenario, GetCookie, SetCookie } from './types';
 import { getContextFromScenarios } from './utils/get-context-from-scenarios';
 
 export {
-  getScenarioIdsFromCookie,
   getDataMocksServerCookie,
   setDataMocksServerCookie,
+  getScenarioIdsFromCookie,
 };
 
 const CONTEXT_AND_SCENARIOS_COOKIE_NAME = 'data-mocks-server';
 
-function expressSetCookie({
-  res,
-  name,
-  value,
-}: {
-  res: Response;
-  name: string;
-  value: CookieValue;
-}) {
-  res.cookie(name, JSON.stringify(value), {
-    encode: String,
-  });
-}
-
-function expressGetCookie({
-  req,
-  res,
-  name,
+function getScenarioIdsFromCookie({
+  getCookie,
+  setCookie,
   defaultValue,
 }: {
-  req: Request;
-  res: Response;
-  name: string;
+  getCookie: GetCookie;
+  setCookie: SetCookie;
   defaultValue: CookieValue;
-}): CookieValue {
-  if (req.cookies[name]) {
+}) {
+  let cookieValue = defaultValue;
+  const cookie = getCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME);
+  if (cookie) {
     try {
-      const value = JSON.parse(req.cookies[name]);
-
-      return value;
+      cookieValue = JSON.parse(cookie);
     } catch (error) {
       // Cookie value was malformed, so needs resetting
-      expressSetCookie({ res, name, value: defaultValue });
+      setCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME, JSON.stringify(cookieValue));
     }
   }
 
-  return defaultValue;
-}
-
-function getScenarioIdsFromCookie({
-  req,
-  res,
-  defaultValue,
-}: {
-  req: Request;
-  res: Response;
-  defaultValue: CookieValue;
-}) {
-  return expressGetCookie({
-    req,
-    res,
-    name: CONTEXT_AND_SCENARIOS_COOKIE_NAME,
-    defaultValue,
-  }).scenarios;
+  return cookieValue.scenarios;
 }
 
 function getDataMocksServerCookie({
   getCookie,
   defaultScenario,
 }: {
-  getCookie: (cookieName: string) => any;
+  getCookie: GetCookie;
   defaultScenario: DefaultScenario;
 }): CookieValue {
   const cookie = getCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME);
@@ -102,7 +68,7 @@ function setDataMocksServerCookie({
   setCookie,
   value,
 }: {
-  setCookie: (cookieName: string, cookieValue: string) => void;
+  setCookie: SetCookie;
   value: CookieValue;
 }) {
   setCookie(CONTEXT_AND_SCENARIOS_COOKIE_NAME, JSON.stringify(value));
