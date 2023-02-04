@@ -12,7 +12,7 @@ const DEFAULT_STATUS = 200;
 const DEFAULT_DELAY = 0;
 
 function createHandler<TInput, TResponse>({
-  response = { status: DEFAULT_STATUS, delay: DEFAULT_DELAY },
+  response = {},
   updateContext,
   getContext,
 }: ResponseProps<TInput, TResponse> & {

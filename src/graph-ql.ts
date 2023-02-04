@@ -11,7 +11,7 @@ import {
   Result,
 } from './types';
 
-export { getGraphQlMocks, getGraphQlMock, createGraphQlRequestHandler };
+export { getGraphQlMocks, getGraphQlMock, graphQlRequestHandler };
 
 type GraphQlHandler = (req: {
   operationType: 'query' | 'mutation';
@@ -77,105 +77,106 @@ function createGraphQlHandler({
   };
 }
 
-function createInternalGraphQlRequestHandler(handlers: GraphQlHandler[]) {
-  return async (req: InternalRequest) => {
-    const query =
-      req.headers['content-type'] === 'application/graphql'
-        ? req.body
-        : req.body.query || req.query.query || '';
+async function internalGraphQlRequestHandler(
+  req: InternalRequest,
+  handlers: GraphQlHandler[],
+) {
+  const query =
+    req.headers['content-type'] === 'application/graphql'
+      ? req.body
+      : req.body.query || req.query.query || '';
 
-    let graphqlAst;
+  let graphqlAst;
+  try {
+    graphqlAst = gql(query);
+  } catch (error) {
+    const result = {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      response: { message: `query "${query}" is not a valid GraphQL query` },
+    };
+
+    return result;
+  }
+
+  const operationTypesAndNames = (graphqlAst.definitions as Array<{
+    kind: string;
+    operation: 'query' | 'mutation';
+    name?: { value: string };
+  }>)
+    .filter(({ kind }) => kind === 'OperationDefinition')
+    .map(({ operation, name }) => ({
+      type: operation,
+      name: name && name.value,
+    }));
+
+  if (
+    operationTypesAndNames.length > 1 &&
+    !req.body.operationName &&
+    !req.query.operationName
+  ) {
+    const result = {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      response: {
+        message: `query "${query}" is not a valid GraphQL query`,
+      },
+    };
+
+    return result;
+  }
+
+  const operationName: string =
+    req.body.operationName ||
+    req.query.operationName ||
+    operationTypesAndNames[0].name ||
+    '';
+
+  const operationTypeAndName = operationTypesAndNames.find(
+    ({ name }) => name === operationName,
+  );
+
+  if (!operationTypeAndName) {
+    const result = {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      response: {
+        message: `operation name "${operationName}" does not exist in GraphQL query`,
+      },
+    };
+
+    return result;
+  }
+
+  const operationType = operationTypeAndName.type;
+
+  let variables = req.body.variables;
+  if (variables === undefined && req.query.variables) {
     try {
-      graphqlAst = gql(query);
-    } catch (error) {
-      const result = {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        response: { message: `query "${query}" is not a valid GraphQL query` },
-      };
+      variables = JSON.parse(req.query.variables);
+    } catch (error) {}
+  }
+  variables = variables || {};
 
+  for (const handler of handlers) {
+    const result = await handler({
+      operationType,
+      operationName,
+      variables,
+    });
+
+    if (result) {
       return result;
     }
+  }
 
-    const operationTypesAndNames = (graphqlAst.definitions as Array<{
-      kind: string;
-      operation: 'query' | 'mutation';
-      name?: { value: string };
-    }>)
-      .filter(({ kind }) => kind === 'OperationDefinition')
-      .map(({ operation, name }) => ({
-        type: operation,
-        name: name && name.value,
-      }));
-
-    if (
-      operationTypesAndNames.length > 1 &&
-      !req.body.operationName &&
-      !req.query.operationName
-    ) {
-      const result = {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        response: {
-          message: `query "${query}" is not a valid GraphQL query`,
-        },
-      };
-
-      return result;
-    }
-
-    const operationName: string =
-      req.body.operationName ||
-      req.query.operationName ||
-      operationTypesAndNames[0].name ||
-      '';
-
-    const operationTypeAndName = operationTypesAndNames.find(
-      ({ name }) => name === operationName,
-    );
-
-    if (!operationTypeAndName) {
-      const result = {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        response: {
-          message: `operation name "${operationName}" does not exist in GraphQL query`,
-        },
-      };
-
-      return result;
-    }
-
-    const operationType = operationTypeAndName.type;
-
-    let variables = req.body.variables;
-    if (variables === undefined && req.query.variables) {
-      try {
-        variables = JSON.parse(req.query.variables);
-      } catch (error) {}
-    }
-    variables = variables || {};
-
-    for (const handler of handlers) {
-      const result = await handler({
-        operationType,
-        operationName,
-        variables,
-      });
-
-      if (result) {
-        return result;
-      }
-    }
-
-    return { status: 404 };
-  };
+  return { status: 404 };
 }
 
 function getGraphQlMock(path: string, graphqlMocks: GraphQlMock[]) {
@@ -222,47 +223,41 @@ function getMutations({
     );
 }
 
-function createGraphQlRequestHandler({
+function graphQlRequestHandler({
+  req,
   graphQlMock,
   updateContext,
   getContext,
 }: {
+  req: InternalRequest;
   graphQlMock: GraphQlMock;
   updateContext: UpdateContext;
   getContext: GetContext;
-}): (req: InternalRequest) => Promise<Result> {
-  return req => {
-    if (req.method === 'GET') {
-      const queries = getQueries({
-        graphQlMock,
-        updateContext,
-        getContext,
-      });
+}): Promise<Result> {
+  if (req.method === 'GET') {
+    const queries = getQueries({
+      graphQlMock,
+      updateContext,
+      getContext,
+    });
 
-      const requestHandler = createInternalGraphQlRequestHandler(queries);
+    return internalGraphQlRequestHandler(req, queries);
+  }
 
-      return requestHandler(req);
-    }
+  if (req.method === 'POST') {
+    const queries = getQueries({
+      graphQlMock,
+      updateContext,
+      getContext,
+    });
+    const mutations = getMutations({
+      graphQlMock,
+      updateContext,
+      getContext,
+    });
 
-    if (req.method === 'POST') {
-      const queries = getQueries({
-        graphQlMock,
-        updateContext,
-        getContext,
-      });
-      const mutations = getMutations({
-        graphQlMock,
-        updateContext,
-        getContext,
-      });
+    return internalGraphQlRequestHandler(req, queries.concat(mutations));
+  }
 
-      const requestHandler = createInternalGraphQlRequestHandler(
-        queries.concat(mutations),
-      );
-
-      return requestHandler(req);
-    }
-
-    return Promise.resolve({ status: 404 });
-  };
+  return Promise.resolve({ status: 404 });
 }

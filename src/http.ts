@@ -9,7 +9,7 @@ import {
   InternalRequest,
 } from './types';
 
-export { getHttpMocks, getHttpMockAndParams, createHttpRequestHandler };
+export { getHttpMocks, getHttpMockAndParams, httpRequestHandler };
 
 function getHttpMocks(mocks: Mock[]) {
   const initialHttpMocks = mocks.filter(
@@ -29,26 +29,26 @@ function getHttpMocks(mocks: Mock[]) {
   return Object.values(httpMocksByUrlAndMethod);
 }
 
-function createHttpRequestHandler({
+function httpRequestHandler({
+  req,
   httpMock,
   params,
   updateContext,
   getContext,
 }: {
+  req: InternalRequest;
   httpMock: HttpMock;
   params: Record<string, any>;
   updateContext: UpdateContext;
   getContext: GetContext;
 }) {
-  return (req: InternalRequest) => {
-    const handler = createHandler({
-      ...httpMock,
-      getContext,
-      updateContext,
-    });
+  const handler = createHandler({
+    ...httpMock,
+    getContext,
+    updateContext,
+  });
 
-    return handler({ ...req, params });
-  };
+  return handler({ ...req, params });
 }
 
 function getHttpMockAndParams(req: InternalRequest, httpMocks: HttpMock[]) {
