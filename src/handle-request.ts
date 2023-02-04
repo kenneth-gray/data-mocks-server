@@ -1,13 +1,9 @@
 import {
   getGraphQlMocks,
   getGraphQlMock,
-  createGraphQlRequestHandler,
+  graphQlRequestHandler,
 } from './graph-ql';
-import {
-  getHttpMocks,
-  getHttpMockAndParams,
-  createHttpRequestHandler,
-} from './http';
+import { getHttpMocks, getHttpMockAndParams, httpRequestHandler } from './http';
 import {
   Mock,
   ScenarioMap,
@@ -121,24 +117,22 @@ async function handleRequest({
   let result: Result = { status: 404 };
 
   if (graphQlMock) {
-    const requestHandler = createGraphQlRequestHandler({
+    result = await graphQlRequestHandler({
+      req,
       graphQlMock,
       updateContext: localUpdateContext,
       getContext,
     });
-
-    result = await requestHandler(req);
   } else {
     const { httpMock, params } = getHttpMockAndParams(req, httpMocks);
     if (httpMock) {
-      const requestHandler = createHttpRequestHandler({
+      result = await httpRequestHandler({
+        req,
         httpMock,
         params,
         getContext,
         updateContext: localUpdateContext,
       });
-
-      result = await requestHandler(req);
     }
   }
 
