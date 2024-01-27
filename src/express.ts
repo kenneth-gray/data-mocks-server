@@ -37,6 +37,7 @@ function createExpressApp({
     resetScenariosPath = '/reset-scenarios',
     scenariosPath = '/scenarios',
     cookieMode = false,
+    cors: corsOptions,
   } = options;
 
   const scenarioIds = Object.keys(scenarioMap);
@@ -60,7 +61,7 @@ function createExpressApp({
   let serverContext = getContextFromScenarios([defaultScenario]);
 
   const app = express();
-  app.use(cors({ credentials: true }));
+  app.use(cors({ ...corsOptions, credentials: true }));
   app.use(cookieParser());
   app.use(uiPath, express.static(path.join(__dirname, 'assets')));
   app.use(express.urlencoded({ extended: false }));
