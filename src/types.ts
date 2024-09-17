@@ -1,3 +1,5 @@
+import { CorsOptions } from 'cors';
+
 export type Result = {
   status: number;
   headers?: Record<string, string>;
@@ -92,6 +94,7 @@ export type Options = {
   resetScenariosPath?: string;
   scenariosPath?: string;
   cookieMode?: boolean;
+  cors?: CorsOptions;
 };
 
 export type Context = Record<string, any>;
