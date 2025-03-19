@@ -1,3 +1,7 @@
+# [Deprecated]
+
+This project is now deprecated in favour of [Scenario Mock Server](https://github.com/kenneth-gray/scenario-mock-server)
+
 # Data Mocks Server
 
 This package was originally a port of https://github.com/ovotech/data-mocks that prefers spinning up an express server instead of mocking out `fetch` and `XHR` operations. Thanks goes to [grug](https://github.com/grug) for his idea and implementation.
